@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/arize_otel/version.py"
+
+[tool.hatch.build]
+only-packages = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/arize_otel"]
+
+[project]
+name = "arize-otel"
+description = "Helper package for OTEL setup to send traces to Arize & Phoenix"
+readme = "README.md"
+requires-python = ">=3.8, <3.13"
+license = { text = "BSD" }
+keywords = [
+    "Observability",
+    "Monitoring",
+    "Explainability",
+    "Tracing"
+]
+authors = [
+  { name = "Arize AI", email = "support@arize.com" },
+]
+maintainers = [
+  { name = "Arize AI", email = "support@arize.com" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Logging",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "openinference-semantic-conventions>=0.1.5",
+    "opentelemetry-sdk>=1.22",
+    "opentelemetry-exporter-otlp>=1.22",
+    "opentelemetry-proto>=1.12.0",  # needed to avoid this issue: https://github.com/Arize-ai/phoenix/issues/2695
+]
+dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://docs.arize.com/arize"
+Issues = "https://github.com/Arize-ai/arize-otel-python/issues"
+Source = "https://github.com/Arize-ai/arize-otel-python"
+Changelog = "https://github.com/Arize-ai/arize-otel-python/main/CHANGELOG.md"
+
