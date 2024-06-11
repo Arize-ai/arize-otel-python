@@ -31,11 +31,11 @@
 ## Overview
 
 The `arize-otel` package is meant to be a very lightweight convenience package to help set up OpenTelemetry for tracing LLM applications
-and send them to [Arize](https://arize.com/), [Phoenix](https://phoenix.arize.com/), or custom collectors.
+and send the traces to [Arize](https://arize.com/), [Phoenix](https://phoenix.arize.com/), or custom collectors.
 
 ## Installation
 
-Install `arize-otel` via `pip`
+Install `arize-otel` using `pip`
 
 ```bash
 pip install arize-otel
@@ -52,21 +52,24 @@ from arize_otel import register_otel, Endpoints
 The following examples showcase how to use `register_otel` to setup Opentelemetry in order to send traces to a collector. However,
 this is **NOT** the same as [instrumenting](https://docs.arize.com/phoenix/tracing/concepts-tracing/how-does-tracing-work)
 your application. For instance, you can use any of our [OpenInference AutoInstrumentators](https://github.com/Arize-ai/openinference).
-Assuming we use the OpenAI autoinstrumentation, we need to run the following command _after_ any of the examples below:
+Assuming we use the OpenAI AutoInstrumentation, we need to run `instrument()` _after_ using `register_otel`:
 
 ```python
-from openinference.instrumentation.openai import OpenAIInstrumentor
-
+# Setup OTEL via our convenience function
 register_otel(
     # See details in examples below...
 )
 
+# Instrument your application using OpenInference AutoInstrumentators
+from openinference.instrumentation.openai import OpenAIInstrumentor
 OpenAIInstrumentor().instrument()
 
 ```
 
-The above code snippet will yield a fully setup and instrumented application. In the following sections we have examples on how to use
-the `register_otel` function:
+The above code snippet will yield a fully setup and instrumented application. It is worth noting that this is completely **optional**. The usage of this
+package is for convenience only, you can set up OpenTelemetry and send traces to Arize and Phoenix without installing this or any other package from Arize.
+
+In the following sections we have examples on how to use the `register_otel` function:
 
 ### Send traces to Arize
 
@@ -101,7 +104,6 @@ register_otel(
 
 Sending traces to a collector on a custom endpoint is simple, you just need to provide the endpoint. If this endpoint corresponds to an Arize or Phoenix deployment,
 you can add any of the options described in the examples above.
-or a Phoenix
 
 ```python
 register_otel(
@@ -131,7 +133,7 @@ register_otel(
 
 ### Debug
 
-As you're setting your tracing, it is helpful to print to console the spans created. You can achieve this by setting `log_to_console=True`.
+As you're setting up your tracing, it is helpful to print to console the spans created. You can achieve this by setting `log_to_console=True`.
 
 ```python
 register_otel(

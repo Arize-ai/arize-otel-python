@@ -52,8 +52,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-Documentation = "https://docs.arize.com/arize"
+Documentation = "https://docs.arize.com/arize/large-language-models/tracing"
 Issues = "https://github.com/Arize-ai/arize-otel-python/issues"
 Source = "https://github.com/Arize-ai/arize-otel-python"
-Changelog = "https://github.com/Arize-ai/arize-otel-python/main/CHANGELOG.md"
+Changelog = "https://github.com/Arize-ai/arize-otel-python/blob/main/CHANGELOG.md"
 

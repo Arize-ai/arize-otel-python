@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.1.0...arize-otel-python/v0.1.1) (2024-06-10)
+
+
+### 📚 Documentation
+
+* Fix README erratas ([#31711](https://github.com/Arize-ai/arize/issues/31711)) ([eeddf81](https://github.com/Arize-ai/arize/commit/eeddf819389256049b510d1e8d1ab99b08d12b8e))
+
 ## [0.1.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.0.1...arize-otel-python/v0.1.0) (2024-06-08)
 
 
@@ -20,7 +27,7 @@
 
 ### 🔧 Build System
 
-* * Fix hatchling package handling ([#31661](https://github.com/Arize-ai/arize/issues/31661)) ([01a0ca8](https://github.com/Arize-ai/arize/commit/01a0ca8939d5325ce7eaf71fd7c7d5f83c8959cb))
+* Fix hatchling package handling ([#31661](https://github.com/Arize-ai/arize/issues/31661)) ([01a0ca8](https://github.com/Arize-ai/arize/commit/01a0ca8939d5325ce7eaf71fd7c7d5f83c8959cb))
 * Add dependencies in pyproject.toml ([89ad9d9](https://github.com/Arize-ai/arize/commit/89ad9d97d608dfa61b57366f4cb062b88baf0ef6))
 * Update build backend in pyproject.toml ([89ad9d9](https://github.com/Arize-ai/arize/commit/89ad9d97d608dfa61b57366f4cb062b88baf0ef6))
 * Update metadata in pyproject.toml ([89ad9d9](https://github.com/Arize-ai/arize/commit/89ad9d97d608dfa61b57366f4cb062b88baf0ef6))
