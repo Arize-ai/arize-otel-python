@@ -80,8 +80,8 @@ to group a subset of data, given the same model ID, to compare and track changes
 ```python
 register_otel(
     endpoints = Endpoints.ARIZE,
-    space_key = "your-space-key",
-    api_key = "your-api-key",
+    space_key = "your-arize-space-key",
+    api_key = "your-arize-api-key",
     model_id = "your-model-id",
     model_version = "your-model-version", # OPTIONAL
 )
@@ -89,8 +89,8 @@ register_otel(
 
 ### Send traces to Phoenix
 
-To send traces to your local Phoenix server you just need to provide the correct endpoint. In the example below we have specified the default Phoenix endpoint,
-but you can specify your own (see next example). Optionally, you can specify a project to send the traces to. A project is a collection of traces that
+To send traces to your local Phoenix server you just need to provide the correct endpoint. In the example below we have specified the local Phoenix endpoint,
+but you can specify your own (explained in an example below). Optionally, you can specify a project to send the traces to. A project is a collection of traces that
 are related to a single application or service. You can have multiple projects, each with multiple traces.
 
 ```python
@@ -99,6 +99,19 @@ register_otel(
     project_name = "your-project-name", # OPTIONAL
 )
 ```
+
+### Send traces to Hosted Phoenix
+
+To send traces to your [Hosted Phoenix](https://docs.arize.com/phoenix/hosted-phoenix), also known as [Llamatrace](https://llamatrace.com/login), you just need to provide the correct endpoint. In the example below we have specified said endpoint, as well as the Phoenix API key required. Optionally, you can specify a project to which to send the traces, exactly as above with a local Phoenix instance.
+
+```python
+register_otel(
+    endpoints = Endpoints.PHOENIX_LOCAL,
+    api_key = "your-hosted-phoenix-api-key",
+    project_name = "your-project-name", # OPTIONAL
+)
+```
+
 
 ### Send traces to Custom Endpoint
 
