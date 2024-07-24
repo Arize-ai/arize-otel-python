@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.1.1...arize-otel-python/v0.2.0) (2024-07-24)
+
+
+### 🎁 New Features
+
+* Add `HOSTED_PHOENIX` endpoint and export via http ([#33334](https://github.com/Arize-ai/arize/issues/33334)) ([10fd2af](https://github.com/Arize-ai/arize/commit/10fd2af5b5bb1124fd32378eeee001ecbd3ab20b))
+
 ## [0.1.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.1.0...arize-otel-python/v0.1.1) (2024-06-10)
 
 

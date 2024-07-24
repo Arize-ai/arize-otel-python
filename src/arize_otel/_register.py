@@ -4,7 +4,12 @@ from typing import List, Optional, Union
 
 from openinference.semconv.resource import ResourceAttributes
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+    OTLPSpanExporter as GrpcSpanExporter,
+)
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+    OTLPSpanExporter as HttpSpanExporter,
+)
 from opentelemetry.sdk.trace import Resource, TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
 
@@ -12,6 +17,7 @@ from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProces
 class Endpoints(str, Enum):
     ARIZE = "https://otlp.arize.com/v1"
     PHOENIX_LOCAL = "http://localhost:4317/v1/traces"
+    HOSTED_PHOENIX = "https://app.phoenix.arize.com/v1/traces"
 
 
 EndpointsType = Union[str, List[str], Endpoints, List[Endpoints]]
@@ -79,9 +85,18 @@ def register_otel(
     )
 
     for endpoint in endpoints:
-        provider.add_span_processor(
-            span_processor=SimpleSpanProcessor(span_exporter=OTLPSpanExporter(endpoint=endpoint))
-        )
+        if should_use_http(endpoint):
+            provider.add_span_processor(
+                span_processor=SimpleSpanProcessor(
+                    span_exporter=HttpSpanExporter(endpoint=endpoint.value)
+                )
+            )
+        else:
+            provider.add_span_processor(
+                span_processor=SimpleSpanProcessor(
+                    span_exporter=GrpcSpanExporter(endpoint=endpoint.value)
+                )
+            )
 
     if log_to_console:
         provider.add_span_processor(
@@ -89,6 +104,12 @@ def register_otel(
         )
 
     trace.set_tracer_provider(tracer_provider=provider)
+
+
+def should_use_http(
+    endpoint: Endpoints,
+) -> bool:
+    return endpoint == Endpoints.HOSTED_PHOENIX
 
 
 def validate_for_arize(
