@@ -106,7 +106,7 @@ To send traces to your [Hosted Phoenix](https://docs.arize.com/phoenix/hosted-ph
 
 ```python
 register_otel(
-    endpoints = Endpoints.PHOENIX_LOCAL,
+    endpoints = Endpoints.HOSTED_PHOENIX,
     api_key = "your-hosted-phoenix-api-key",
     project_name = "your-project-name", # OPTIONAL
 )
