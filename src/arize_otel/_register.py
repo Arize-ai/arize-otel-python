@@ -11,7 +11,11 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
     OTLPSpanExporter as HttpSpanExporter,
 )
 from opentelemetry.sdk.trace import Resource, TracerProvider
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+from opentelemetry.sdk.trace.export import (
+    BatchSpanProcessor,
+    ConsoleSpanExporter,
+    SimpleSpanProcessor,
+)
 
 
 class Endpoints(str, Enum):
@@ -25,15 +29,18 @@ EndpointsType = Union[str, List[str], Endpoints, List[Endpoints]]
 
 def register_otel(
     endpoints: EndpointsType,
+    # authentication for arize and hosted phoenix
+    api_key: Optional[str] = None,
     # arize specific
     space_key: Optional[str] = None,
-    api_key: Optional[str] = None,
     model_id: Optional[str] = None,
     model_version: Optional[str] = None,
     # phoenix specific
     project_name: Optional[str] = None,
     # debugging
     log_to_console: bool = False,
+    # config
+    use_batch_processor: bool = False,
 ) -> None:
     """
     Sets up a `TracerProvider` with the corresponding `Resource` and with
@@ -43,7 +50,6 @@ def register_otel(
 
     Parameters:
     -----------
-        raise_amount (float): The raise amount to increase the salary.
         endpoints(str, List[str], Endpoints, List[Endpoints]): set of endpoints to set up.
             It can be one or many endpoints. If you'd like to send traces to Arize and/or Phoenix,
             we recommend the use of Endpoints.ARIZE and Endpoints.PHOENIX_LOCAL, respecitvely.
@@ -63,18 +69,27 @@ def register_otel(
             multiple projects, each with multiple traces. Defaults to None.
         log_to_console(bool, optional): Enable this option while developing so the
             spans are printed in the console. Defaults to False.
+        use_batch_processor(bool, optional): Enable this option to use
+            `BatchSpanProcessor` instead of the default `SimpleSpanProcessor`.
+            Defaults to False.
 
     Returns:
     --------
         None
     """
+    if not isinstance(use_batch_processor, bool):
+        raise TypeError("use_batch_processor must be of type bool")
+
     if not isinstance(endpoints, list):
         endpoints = [endpoints]
 
     if Endpoints.ARIZE in endpoints:
         validate_for_arize(space_key, api_key, model_id)
 
-    set_arize_keys(space_key, api_key)
+    if Endpoints.HOSTED_PHOENIX in endpoints:
+        validate_for_hosted_phoenix(api_key)
+
+    set_auth_keys(space_key, api_key)
 
     provider = TracerProvider(
         resource=create_resource(
@@ -84,23 +99,23 @@ def register_otel(
         )
     )
 
+    processor = BatchSpanProcessor if use_batch_processor else SimpleSpanProcessor
+
     for endpoint in endpoints:
-        if should_use_http(endpoint):
-            provider.add_span_processor(
-                span_processor=SimpleSpanProcessor(
-                    span_exporter=HttpSpanExporter(endpoint=endpoint.value)
-                )
+        # Extract string value from Endpoints Enum, or use the string value passed by the user
+        exporter = HttpSpanExporter if should_use_http(endpoint) else GrpcSpanExporter
+        ep = endpoint.value if isinstance(endpoint, Endpoints) else endpoint
+        provider.add_span_processor(
+            span_processor=processor(
+                span_exporter=exporter(endpoint=ep),
             )
-        else:
-            provider.add_span_processor(
-                span_processor=SimpleSpanProcessor(
-                    span_exporter=GrpcSpanExporter(endpoint=endpoint.value)
-                )
-            )
+        )
 
     if log_to_console:
         provider.add_span_processor(
-            span_processor=SimpleSpanProcessor(span_exporter=ConsoleSpanExporter())
+            span_processor=processor(
+                span_exporter=ConsoleSpanExporter(),
+            )
         )
 
     trace.set_tracer_provider(tracer_provider=provider)
@@ -116,7 +131,7 @@ def validate_for_arize(
     space_key: str,
     api_key: str,
     model_id: str,
-) -> TracerProvider:
+) -> None:
     if not space_key:
         raise ValueError("Missing 'space_key' to log traces into Arize")
     if not api_key:
@@ -125,11 +140,16 @@ def validate_for_arize(
         raise ValueError("Missing 'model_id' to log traces into Arize")
 
 
+def validate_for_hosted_phoenix(api_key: str) -> None:
+    if not api_key:
+        raise ValueError("Missing 'api_key' to log traces into Hosted Phoenix")
+
+
 def create_resource(
     model_id: str,
     model_version: str,
     project_name: str,
-) -> None:
+) -> Resource:
     attributes = {}
     if model_id:
         attributes["model_id"] = model_id
@@ -140,7 +160,7 @@ def create_resource(
     return Resource(attributes=attributes)
 
 
-def set_arize_keys(
+def set_auth_keys(
     space_key: str,
     api_key: str,
 ) -> None:

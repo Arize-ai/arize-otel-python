@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.2.0...arize-otel-python/v0.3.0) (2024-07-30)
+
+
+### 🎁 New Features
+
+* Add batchprocessor option ([#33568](https://github.com/Arize-ai/arize/issues/33568)) ([b1f3d8c](https://github.com/Arize-ai/arize/commit/b1f3d8ce3e20e2a84bfe44ec3bfa058700662a5b))
+
+
+### 🐛 Bug Fixes
+
+* Accept string endpoints outside Endpoints Enum ([#33569](https://github.com/Arize-ai/arize/issues/33569)) ([b765bc9](https://github.com/Arize-ai/arize/commit/b765bc9b1b42839d271c4ca23ecfc10440ecc920))
+
+
+### 📚 Documentation
+
+* Fix Hosted Phoenix endpoint in README file ([#33507](https://github.com/Arize-ai/arize/issues/33507)) ([002f5c3](https://github.com/Arize-ai/arize/commit/002f5c335a4ee2fddcd03c9769f0120a14b1aff4))
+
 ## [0.2.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.1.1...arize-otel-python/v0.2.0) (2024-07-24)
 
 
