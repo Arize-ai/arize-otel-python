@@ -40,7 +40,7 @@ def register_otel(
     # debugging
     log_to_console: bool = False,
     # config
-    use_batch_processor: bool = False,
+    use_batch_processor: bool = True,
 ) -> None:
     """
     Sets up a `TracerProvider` with the corresponding `Resource` and with
