@@ -155,6 +155,17 @@ register_otel(
 )
 ```
 
+### Turn off batch processing of spans
+
+We default to using [BatchSpanProcessor](https://opentelemetry.io/docs/languages/js/instrumentation/#picking-the-right-span-processor) from OpenTelemetry because it is non-blocking in case telemetry goes down. In contrast, "SimpleSpanProcessor processes spans as they are created." This can be helpful in development. You can use `SimpleSpanProcessor` with the option `use_batch_processor=False`.
+
+```python
+register_otel(
+    # other options...
+    use_batch_processor=False
+)
+```
+
 ## Questions?
 
 Find us in our [Slack Community](https://join.slack.com/t/arize-ai/shared_invite/zt-1px8dcmlf-fmThhDFD_V_48oU7ALan4Q) or email support@arize.com

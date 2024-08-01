@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.3.0...arize-otel-python/v0.3.1) (2024-08-01)
+
+
+### 🐛 Bug Fixes
+
+* set `use_batch_processor` to be `True` by default ([#33677](https://github.com/Arize-ai/arize/issues/33677)) ([61be6bf](https://github.com/Arize-ai/arize/commit/61be6bf90af1ac167de99019ce546cbfe0974acf))
+
 ## [0.3.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.2.0...arize-otel-python/v0.3.0) (2024-07-30)
 
 
