@@ -20,7 +20,8 @@ from opentelemetry.sdk.trace.export import (
 
 class Endpoints(str, Enum):
     ARIZE = "https://otlp.arize.com/v1"
-    PHOENIX_LOCAL = "http://localhost:4317/v1/traces"
+    LOCAL_PHOENIX_HTTP = "http://localhost:6006/v1/traces"
+    LOCAL_PHOENIX_GRPC = "http://localhost:4317"
     HOSTED_PHOENIX = "https://app.phoenix.arize.com/v1/traces"
 
 
@@ -40,7 +41,7 @@ def register_otel(
     # debugging
     log_to_console: bool = False,
     # config
-    use_batch_processor: bool = False,
+    use_batch_processor: bool = True,
 ) -> None:
     """
     Sets up a `TracerProvider` with the corresponding `Resource` and with
@@ -52,7 +53,7 @@ def register_otel(
     -----------
         endpoints(str, List[str], Endpoints, List[Endpoints]): set of endpoints to set up.
             It can be one or many endpoints. If you'd like to send traces to Arize and/or Phoenix,
-            we recommend the use of Endpoints.ARIZE and Endpoints.PHOENIX_LOCAL, respecitvely.
+            we recommend the use of Endpoints.ARIZE and Endpoints.HOSTED_PHOENIX, respecitvely.
         space_key(str, optional): This is Arize specific. The space key is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
@@ -124,7 +125,10 @@ def register_otel(
 def should_use_http(
     endpoint: Endpoints,
 ) -> bool:
-    return endpoint == Endpoints.HOSTED_PHOENIX
+    return endpoint in (
+        Endpoints.LOCAL_PHOENIX_HTTP,
+        Endpoints.HOSTED_PHOENIX,
+    )
 
 
 def validate_for_arize(
