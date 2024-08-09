@@ -87,15 +87,26 @@ register_otel(
 )
 ```
 
-### Send traces to Phoenix
+### Send traces to Local Phoenix
 
 To send traces to your local Phoenix server you just need to provide the correct endpoint. In the example below we have specified the local Phoenix endpoint,
 but you can specify your own (explained in an example below). Optionally, you can specify a project to send the traces to. A project is a collection of traces that
 are related to a single application or service. You can have multiple projects, each with multiple traces.
 
+Send traces via HTTP:
+
 ```python
 register_otel(
-    endpoints = Endpoints.PHOENIX_LOCAL,
+    endpoints = Endpoints.LOCAL_PHOENIX_HTTP,
+    project_name = "your-project-name", # OPTIONAL
+)
+```
+
+Send traces via gRPC:
+
+```python
+register_otel(
+    endpoints = Endpoints.LOCAL_PHOENIX_GRPC,
     project_name = "your-project-name", # OPTIONAL
 )
 ```
@@ -111,7 +122,6 @@ register_otel(
     project_name = "your-project-name", # OPTIONAL
 )
 ```
-
 
 ### Send traces to Custom Endpoint
 
@@ -152,6 +162,17 @@ As you're setting up your tracing, it is helpful to print to console the spans c
 register_otel(
     # other options...
     log_to_console=True
+)
+```
+
+### Turn off batch processing of spans
+
+We default to using [BatchSpanProcessor](https://opentelemetry.io/docs/languages/js/instrumentation/#picking-the-right-span-processor) from OpenTelemetry because it is non-blocking in case telemetry goes down. In contrast, "SimpleSpanProcessor processes spans as they are created." This can be helpful in development. You can use `SimpleSpanProcessor` with the option `use_batch_processor=False`.
+
+```python
+register_otel(
+    # other options...
+    use_batch_processor=False
 )
 ```
 
