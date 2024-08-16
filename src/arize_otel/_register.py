@@ -1,6 +1,7 @@
 import os
 from enum import Enum
 from typing import List, Optional, Union
+from warnings import warn
 
 from openinference.semconv.resource import ResourceAttributes
 from opentelemetry import trace
@@ -33,6 +34,7 @@ def register_otel(
     # authentication for arize and hosted phoenix
     api_key: Optional[str] = None,
     # arize specific
+    space_id: Optional[str] = None,
     space_key: Optional[str] = None,
     model_id: Optional[str] = None,
     model_version: Optional[str] = None,
@@ -53,10 +55,11 @@ def register_otel(
     -----------
         endpoints(str, List[str], Endpoints, List[Endpoints]): set of endpoints to set up.
             It can be one or many endpoints. If you'd like to send traces to Arize and/or Phoenix,
-            we recommend the use of Endpoints.ARIZE and Endpoints.HOSTED_PHOENIX, respecitvely.
-        space_key(str, optional): This is Arize specific. The space key is necessary for
+            we recommend the use of Endpoints.ARIZE and Endpoints.HOSTED_PHOENIX, respectively.
+        space_id(str, optional): This is Arize specific. The space ID is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
+        space_key(str, optional): Deprecated - Use space_id instead.
         api_key(str, optional): This is Arize specific. The api key is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
@@ -78,6 +81,14 @@ def register_otel(
     --------
         None
     """
+    if space_key:
+        warn(
+            message="The space_key parameter is deprecated and will be removed in a future release. "
+            + "Please use the space_id parameter instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+
     if not isinstance(use_batch_processor, bool):
         raise TypeError("use_batch_processor must be of type bool")
 
@@ -85,12 +96,12 @@ def register_otel(
         endpoints = [endpoints]
 
     if Endpoints.ARIZE in endpoints:
-        validate_for_arize(space_key, api_key, model_id)
+        validate_for_arize(space_id, space_key, api_key, model_id)
 
     if Endpoints.HOSTED_PHOENIX in endpoints:
         validate_for_hosted_phoenix(api_key)
 
-    set_auth_keys(space_key, api_key)
+    set_auth_keys(space_id, space_key, api_key)
 
     provider = TracerProvider(
         resource=create_resource(
@@ -131,13 +142,9 @@ def should_use_http(
     )
 
 
-def validate_for_arize(
-    space_key: str,
-    api_key: str,
-    model_id: str,
-) -> None:
-    if not space_key:
-        raise ValueError("Missing 'space_key' to log traces into Arize")
+def validate_for_arize(space_id: str, space_key: str, api_key: str, model_id: str) -> None:
+    if not (space_key or space_id):
+        raise ValueError("Missing 'space_id' to log traces into Arize")
     if not api_key:
         raise ValueError("Missing 'api_key' to log traces into Arize")
     if not model_id:
@@ -164,9 +171,8 @@ def create_resource(
     return Resource(attributes=attributes)
 
 
-def set_auth_keys(
-    space_key: str,
-    api_key: str,
-) -> None:
+def set_auth_keys(space_id: str, space_key: str, api_key: str) -> None:
     # Set the Space and API keys as headers
-    os.environ["OTEL_EXPORTER_OTLP_TRACES_HEADERS"] = f"space_key={space_key},api_key={api_key}"
+    os.environ[
+        "OTEL_EXPORTER_OTLP_TRACES_HEADERS"
+    ] = f"space_id={space_id},space_key={space_key},api_key={api_key}"
