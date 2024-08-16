@@ -73,14 +73,14 @@ In the following sections we have examples on how to use the `register_otel` fun
 
 ### Send traces to Arize
 
-To send traces to Arize you need to authenticate via the space and API keys. You can find them in the Space Settings page in the Arize platform. In addition,
+To send traces to Arize you need to authenticate via the Space ID and API Key. You can find them in the Space Settings page in the Arize platform. In addition,
 you'll need to specify the model ID, an unique name to identify your model in the Arize platform. Optionally, you can set the model version, which serves to
 to group a subset of data, given the same model ID, to compare and track changes.
 
 ```python
 register_otel(
     endpoints = Endpoints.ARIZE,
-    space_key = "your-arize-space-key",
+    space_id = "your-arize-space-id",
     api_key = "your-arize-api-key",
     model_id = "your-model-id",
     model_version = "your-model-version", # OPTIONAL
@@ -145,8 +145,8 @@ register_otel(
         Endpoints.ARIZE,
         Endpoints.PHOENIX_LOCAL,
         "https://my-custom-endpoint",
-    ]
-    space_key = "your-space-key",
+    ],
+    space_id = "your-space-id",
     api_key = "your-api-key",
     model_id = "your-model-id",
     model_version = "your-model-version", # OPTIONAL

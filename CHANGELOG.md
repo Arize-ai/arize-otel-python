@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.0...arize-otel-python/v0.5.1) (2024-08-16)
+
+
+### ❔ Miscellaneous Chores
+
+* README reflects space_id changes ([#34225](https://github.com/Arize-ai/arize/issues/34225)) ([f03d0f0](https://github.com/Arize-ai/arize/commit/f03d0f0744066eb16cbf6eeda36e91be1460f5b7))
+
 ## [0.5.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.4.0...arize-otel-python/v0.5.0) (2024-08-15)
 
 
