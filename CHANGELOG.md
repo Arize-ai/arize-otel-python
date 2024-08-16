@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.4.0...arize-otel-python/v0.5.0) (2024-08-15)
+
+
+### 🎁 New Features
+
+* send traces to Arize using OTLP exporter with space_id ([#33983](https://github.com/Arize-ai/arize/issues/33983)) ([74bf7cc](https://github.com/Arize-ai/arize/commit/74bf7cc905b9ac0a0fca603eb45ada1ee5a27386))
+
 ## [0.4.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.3.1...arize-otel-python/v0.4.0) (2024-08-09)
 
 
