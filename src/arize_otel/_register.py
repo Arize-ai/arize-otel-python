@@ -172,7 +172,8 @@ def create_resource(
 
 
 def set_auth_keys(space_id: str, space_key: str, api_key: str) -> None:
-    # Set the Space and API keys as headers
-    os.environ[
-        "OTEL_EXPORTER_OTLP_TRACES_HEADERS"
-    ] = f"space_id={space_id},space_key={space_key},api_key={api_key}"
+    if space_id:
+        auth_key_str = f"space_id={space_id},api_key={api_key}"
+    else:
+        auth_key_str = f"space_key={space_key},api_key={api_key}"
+    os.environ["OTEL_EXPORTER_OTLP_TRACES_HEADERS"] = auth_key_str
