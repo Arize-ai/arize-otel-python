@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.1...arize-otel-python/v0.5.2) (2024-09-13)
+
+
+### 🐛 Bug Fixes
+
+* auth_header_key sets only one of space_id or space_key ([#34266](https://github.com/Arize-ai/arize/issues/34266)) ([f58b0e1](https://github.com/Arize-ai/arize/commit/f58b0e1142a93e2a3eb59e5418741351242871a0))
+
 ## [0.5.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.0...arize-otel-python/v0.5.1) (2024-08-16)
 
 
