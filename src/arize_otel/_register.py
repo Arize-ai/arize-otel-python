@@ -56,7 +56,7 @@ def register_otel(
         endpoints(str, List[str], Endpoints, List[Endpoints]): set of endpoints to set up.
             It can be one or many endpoints. If you'd like to send traces to Arize and/or Phoenix,
             we recommend the use of Endpoints.ARIZE and Endpoints.HOSTED_PHOENIX, respectively.
-        space_id(str, optional): This is Arize specific. The space ID is necessary for
+        space_id(str, optional): (Deprecated) This is Arize specific. The space ID is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
         space_key(str, optional): Deprecated - Use space_id instead.
@@ -68,7 +68,7 @@ def register_otel(
         model_version(str, optional): This is Arize specific. The model version is
             used to group a subset of data, given the same model ID,
             to compare and track changes. Defaults to None.
-        project_name(str, optional): This is Phoenix specific. A project is a collection of
+        project_name(str, optional): A project is a collection of
             traces that are related to a single application or service. You can have
             multiple projects, each with multiple traces. Defaults to None.
         log_to_console(bool, optional): Enable this option while developing so the
@@ -142,13 +142,13 @@ def should_use_http(
     )
 
 
-def validate_for_arize(space_id: str, space_key: str, api_key: str, model_id: str) -> None:
+def validate_for_arize(space_id: str, space_key: str, api_key: str, model_id: str, project_name: str) -> None:
     if not (space_key or space_id):
         raise ValueError("Missing 'space_id' to log traces into Arize")
     if not api_key:
         raise ValueError("Missing 'api_key' to log traces into Arize")
-    if not model_id:
-        raise ValueError("Missing 'model_id' to log traces into Arize")
+    if not project_name and not model_id:
+        raise ValueError("Missing 'project_name' or 'model_id' to log traces into Arize")
 
 
 def validate_for_hosted_phoenix(api_key: str) -> None:
@@ -167,6 +167,7 @@ def create_resource(
     if model_version:
         attributes["model_version"] = model_version
     if project_name:
+        attributes["model_id"] = project_name
         attributes[ResourceAttributes.PROJECT_NAME] = project_name
     return Resource(attributes=attributes)
 
