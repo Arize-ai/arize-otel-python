@@ -56,14 +56,14 @@ def register_otel(
         endpoints(str, List[str], Endpoints, List[Endpoints]): set of endpoints to set up.
             It can be one or many endpoints. If you'd like to send traces to Arize and/or Phoenix,
             we recommend the use of Endpoints.ARIZE and Endpoints.HOSTED_PHOENIX, respectively.
-        space_id(str, optional): (Deprecated) This is Arize specific. The space ID is necessary for
+        space_id(str, optional): This is Arize specific. The space ID is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
         space_key(str, optional): Deprecated - Use space_id instead.
         api_key(str, optional): This is Arize specific. The api key is necessary for
             authentication when sending traces to Arize and you can find it in the
             Space Settings page in the Arize platform. Defaults to None.
-        model_id(str, optional): This is Arize specific. The model ID is a unique name
+        model_id(str, optional): (Deprecated) This is Arize specific. The model ID is a unique name
             to identify your model in the Arize platform. Defaults to None.
         model_version(str, optional): This is Arize specific. The model version is
             used to group a subset of data, given the same model ID,
