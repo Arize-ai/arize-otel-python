@@ -38,7 +38,6 @@ def register_otel(
     space_key: Optional[str] = None,
     model_id: Optional[str] = None,
     model_version: Optional[str] = None,
-    # phoenix specific
     project_name: Optional[str] = None,
     # debugging
     log_to_console: bool = False,
