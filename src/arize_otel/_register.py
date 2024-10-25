@@ -95,7 +95,7 @@ def register_otel(
         endpoints = [endpoints]
 
     if Endpoints.ARIZE in endpoints:
-        validate_for_arize(space_id, space_key, api_key, model_id)
+        validate_for_arize(space_id, space_key, api_key, model_id, project_name)
 
     if Endpoints.HOSTED_PHOENIX in endpoints:
         validate_for_hosted_phoenix(api_key)
