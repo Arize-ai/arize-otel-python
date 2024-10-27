@@ -133,12 +133,12 @@ def register_otel(
 
 
 def should_use_http(
-    endpoint: Endpoints,
+    endpoint: Union[str, Endpoints,
 ) -> bool:
     return endpoint in (
         Endpoints.LOCAL_PHOENIX_HTTP,
         Endpoints.HOSTED_PHOENIX,
-    )
+    ) or (isinstance(endpoint, str) and endpoint.startswith("http"))
 
 
 def validate_for_arize(space_id: str, space_key: str, api_key: str, model_id: str, project_name: str) -> None:
