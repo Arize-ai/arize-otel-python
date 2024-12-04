@@ -1,7 +1,26 @@
 # Changelog
 
-## [0.5.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.1...arize-otel-python/v0.5.2) (2024-09-13)
+## [0.6.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.3...arize-otel-python/v0.6.0) (2024-12-04)
 
+
+### 🎁 New Features
+
+* Add support for project_name when logging to Arize ([#38834](https://github.com/Arize-ai/arize/issues/38834)) ([09c9efa](https://github.com/Arize-ai/arize/commit/09c9efad726f4d39ee11074123baf80805389650))
+
+
+### 🐛 Bug Fixes
+
+* `should_use_http` correct handling of custom endpoints ([09c9efa](https://github.com/Arize-ai/arize/commit/09c9efad726f4d39ee11074123baf80805389650))
+
+## [0.5.3](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.2...arize-otel-python/v0.5.3) (2024-11-01)
+
+
+### 🎨 Styles
+
+* Use ruff as linter/formatter ([#37414](https://github.com/Arize-ai/arize/issues/37414)) ([95c9a35](https://github.com/Arize-ai/arize/commit/95c9a35a83654ac8847461bf2cbbb063e0abdcd8))
+
+## [0.5.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.1...arize-otel-python/v0.5.2) (2024-09-13)
+ 
 
 ### 🐛 Bug Fixes
 
