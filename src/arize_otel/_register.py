@@ -133,21 +133,27 @@ def register_otel(
 
 
 def should_use_http(
-    endpoint: Endpoints,
+    endpoint: Union[str, Endpoints],
 ) -> bool:
+    if isinstance(endpoint, str) and endpoint.startswith("http"):
+        return True
     return endpoint in (
         Endpoints.LOCAL_PHOENIX_HTTP,
         Endpoints.HOSTED_PHOENIX,
     )
 
 
-def validate_for_arize(space_id: str, space_key: str, api_key: str, model_id: str, project_name: str) -> None:
+def validate_for_arize(
+    space_id: str, space_key: str, api_key: str, model_id: str, project_name: str
+) -> None:
     if not (space_key or space_id):
         raise ValueError("Missing 'space_id' to log traces into Arize")
     if not api_key:
         raise ValueError("Missing 'api_key' to log traces into Arize")
     if not project_name and not model_id:
-        raise ValueError("Missing 'project_name' or 'model_id' to log traces into Arize")
+        raise ValueError(
+            "Missing 'project_name' or 'model_id' to log traces into Arize"
+        )
 
 
 def validate_for_hosted_phoenix(api_key: str) -> None:
