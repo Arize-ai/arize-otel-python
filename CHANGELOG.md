@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.7.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.6.0...arize-otel-python/v0.7.0) (2024-12-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove `space_key` authentication ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Change import to `from arize.otel import ...` ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Rename endpoint class to `Endpoint` instead of `Endpoints` ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Rename `register_otel` as `register` ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* `register` does not take multiple endpoints, just one ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Remove `model_id` from `register`. Use `project_name` ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Remove `model_version` from `register` ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Remove `phoenix` related endpoints ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Remove `space_key` authentication ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+
+### 🎁 New Features
+
+* Make arize-otel package a wrapper around otel primitives ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Ability to pass the `transport` method via the `Transport` enum ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+* Ability to configure using environment variables ([#38838](https://github.com/Arize-ai/arize/issues/38838)) ([d7f36a4](https://github.com/Arize-ai/arize/commit/d7f36a42bbef79d686931ac2e8b5ceb324a8c7ff))
+
 ## [0.6.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.5.3...arize-otel-python/v0.6.0) (2024-12-04)
 
 
