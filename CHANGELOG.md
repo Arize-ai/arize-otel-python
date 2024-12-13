@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.0...arize-otel-python/v0.7.1) (2024-12-13)
+
+
+### 📚 Documentation
+
+* fix README typos for endpoint input field ([#39272](https://github.com/Arize-ai/arize/issues/39272)) ([3c4a120](https://github.com/Arize-ai/arize/commit/3c4a120fd3ec6b9b8884542e707c781ddb600d68))
+
 ## [0.7.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.6.0...arize-otel-python/v0.7.0) (2024-12-11)
 
 
