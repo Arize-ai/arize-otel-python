@@ -114,7 +114,7 @@ Sending traces to a collector on a custom endpoint is simple, you just need to p
 ```python
 from arize.otel import register
 register(
-    endpoints = "https://my-custom-endpoint"
+    endpoint = "https://my-custom-endpoint"
     # any other options...
 )
 ```
@@ -126,7 +126,7 @@ If you're using endpoints from the `Endpoint` enum, you do not need to do this, 
 ```python
 from arize.otel import register, Transport
 register(
-    endpoints = "https://my-custom-endpoint"
+    endpoint = "https://my-custom-endpoint"
     transport = Transport.HTTP,
     # any other options...
 )
