@@ -1,5 +1,5 @@
 <p align="center">
-    <a target="_blank" href="https://phoenix.arize.com" style="background:none">
+    <a target="_blank" href="https://arize.com" style="background:none">
         <img alt="arize banner" src="https://storage.googleapis.com/arize-assets/arize-logo-white.jpg"  width="auto" height="auto"></img>
     </a>
     <br/>
@@ -28,10 +28,26 @@
 
 ---
 
+- [Overview](#overview)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+  - [Send traces to Arize](#send-traces-to-arize)
+  - [Send traces to Custom Endpoint](#send-traces-to-custom-endpoint)
+  - [Specify exporter type](#specify-exporter-type)
+  - [Turn off batch processing of spans](#turn-off-batch-processing-of-spans)
+  - [Debug](#debug)
+- [Using Environment Variables](#using-environment-variables)
+- [Using OTel Primitives](#using-otel-primitives)
+  - [Specifying the `endpoint` directly](#specifying-the-endpoint-directly)
+  - [Configuring resources](#configuring-resources)
+  - [Using a BatchSpanProcessor](#using-a-batchspanprocessor)
+  - [Specifying a custom GRPC endpoint](#specifying-a-custom-grpc-endpoint)
+- [Questions?](#questions)
+- [Copyright, Patent, and License](#copyright-patent-and-license)
+
 ## Overview
 
-The `arize-otel` package is meant to be a very lightweight convenience package to help set up OpenTelemetry for tracing LLM applications
-and send the traces to [Arize](https://arize.com/), [Phoenix](https://phoenix.arize.com/), or custom collectors.
+The `arize-otel` package provides a lightweight wrapper around OpenTelemetry primitives with Arize-aware defaults and options. It is meant to be a very lightweight convenience package to help set up OpenTelemetry for tracing LLM applications and send the traces to [Arize](https://arize.com/).
 
 ## Installation
 
@@ -43,125 +59,76 @@ pip install arize-otel
 
 ## Quickstart
 
-You only need one import to use this package:
+The `arize.otel` module provides a high-level `register` function to configure OpenTelemetry tracing by returning a `TracerProvider`. The register function can also configure headers and whether or not to process spans one by one or by batch.
+
+The following examples showcase how to use `register` to setup Opentelemetry in order to send traces to a collector. However, this is **NOT** the same as [instrumenting](https://docs.arize.com/phoenix/tracing/concepts-tracing/how-does-tracing-work) your application. For instance, you can use any of our [OpenInference AutoInstrumentators](https://github.com/Arize-ai/openinference). Assuming we use the OpenAI AutoInstrumentation, we need to run `instrument()` _after_ using `register`:
 
 ```python
-from arize_otel import register_otel, Endpoints
-```
-
-The following examples showcase how to use `register_otel` to setup Opentelemetry in order to send traces to a collector. However,
-this is **NOT** the same as [instrumenting](https://docs.arize.com/phoenix/tracing/concepts-tracing/how-does-tracing-work)
-your application. For instance, you can use any of our [OpenInference AutoInstrumentators](https://github.com/Arize-ai/openinference).
-Assuming we use the OpenAI AutoInstrumentation, we need to run `instrument()` _after_ using `register_otel`:
-
-```python
-# Setup OTEL via our convenience function
-register_otel(
+from arize.otel import register
+# Setup OTel via our convenience function
+tracer_provider = register(
     # See details in examples below...
 )
 
 # Instrument your application using OpenInference AutoInstrumentators
 from openinference.instrumentation.openai import OpenAIInstrumentor
-OpenAIInstrumentor().instrument()
+OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 
 ```
 
-The above code snippet will yield a fully setup and instrumented application. It is worth noting that this is completely **optional**. The usage of this
-package is for convenience only, you can set up OpenTelemetry and send traces to Arize and Phoenix without installing this or any other package from Arize.
+The above code snippet will yield a fully setup and instrumented application. It is worth noting that this is completely **optional**. The usage of this package is for convenience only, you can set up OpenTelemetry and send traces to Arize without installing this or any other package from Arize.
 
-In the following sections we have examples on how to use the `register_otel` function:
+In the following sections we have examples on how to use the `register` function:
 
 ### Send traces to Arize
 
-To send traces to Arize you need to authenticate via the Space ID and API Key. You can find them in the Space Settings page in the Arize platform. In addition,
-you'll need to specify the model ID, an unique name to identify your model in the Arize platform. Optionally, you can set the model version, which serves to
-to group a subset of data, given the same model ID, to compare and track changes.
+To send traces to Arize you need to authenticate via the Space ID and API Key. You can find them in the Space Settings page in the Arize platform. In addition, you'll need to specify the project name, a unique name to identify your project in the Arize platform.
 
 ```python
-register_otel(
-    endpoints = Endpoints.ARIZE,
+from arize.otel import register
+register(
     space_id = "your-arize-space-id",
     api_key = "your-arize-api-key",
-    model_id = "your-model-id",
-    model_version = "your-model-version", # OPTIONAL
+    project_name = "your-model-id",
 )
 ```
 
-### Send traces to Local Phoenix
-
-To send traces to your local Phoenix server you just need to provide the correct endpoint. In the example below we have specified the local Phoenix endpoint,
-but you can specify your own (explained in an example below). Optionally, you can specify a project to send the traces to. A project is a collection of traces that
-are related to a single application or service. You can have multiple projects, each with multiple traces.
-
-Send traces via HTTP:
+If you are located in the European Union, you'll need to specify the corresponding `Endpoint` (the default endpoint is `Endpoint.ARIZE`):
 
 ```python
-register_otel(
-    endpoints = Endpoints.LOCAL_PHOENIX_HTTP,
-    project_name = "your-project-name", # OPTIONAL
+from arize.otel import register, Endpoint
+register(
+    endpoint=Endpoint.ARIZE_EUROPE,
+    space_id = "your-arize-space-id",
+    api_key = "your-arize-api-key",
+    project_name = "your-model-id",
 )
 ```
 
-Send traces via gRPC:
-
-```python
-register_otel(
-    endpoints = Endpoints.LOCAL_PHOENIX_GRPC,
-    project_name = "your-project-name", # OPTIONAL
-)
-```
-
-### Send traces to Hosted Phoenix
-
-To send traces to your [Hosted Phoenix](https://docs.arize.com/phoenix/hosted-phoenix), also known as [Llamatrace](https://llamatrace.com/login), you just need to provide the correct endpoint. In the example below we have specified said endpoint, as well as the Phoenix API key required. Optionally, you can specify a project to which to send the traces, exactly as above with a local Phoenix instance.
-
-```python
-register_otel(
-    endpoints = Endpoints.HOSTED_PHOENIX,
-    api_key = "your-hosted-phoenix-api-key",
-    project_name = "your-project-name", # OPTIONAL
-)
-```
+If you would like to configure your tracing using environment variables instead of passing arguments, read [Using Environment Variables](#using-environment-variables).
 
 ### Send traces to Custom Endpoint
 
-Sending traces to a collector on a custom endpoint is simple, you just need to provide the endpoint. If this endpoint corresponds to an Arize or Phoenix deployment,
-you can add any of the options described in the examples above.
+Sending traces to a collector on a custom endpoint is simple, you just need to provide the endpoint as a string. In addition, it is worth noting that the default is to use a `GRPCSpanExporter`. If you'd like to use a `HTTPSpanExporter` instead, specify the transport as shown below:
 
 ```python
-register_otel(
+from arize.otel import register
+register(
     endpoints = "https://my-custom-endpoint"
     # any other options...
 )
 ```
 
-### Send traces to Multiple Endpoints
+### Specify exporter type
 
-In this example we send traces to the default Arize and Phoenix endpoints, as well as to a third custom one. We also set all the options mentioned until now.
-
-```python
-register_otel(
-    endpoints = [
-        Endpoints.ARIZE,
-        Endpoints.PHOENIX_LOCAL,
-        "https://my-custom-endpoint",
-    ],
-    space_id = "your-space-id",
-    api_key = "your-api-key",
-    model_id = "your-model-id",
-    model_version = "your-model-version", # OPTIONAL
-    project_name = "your-project-name", # OPTIONAL
-)
-```
-
-### Debug
-
-As you're setting up your tracing, it is helpful to print to console the spans created. You can achieve this by setting `log_to_console=True`.
+If you're using endpoints from the `Endpoint` enum, you do not need to do this, since we know what exporter to use. However, if you're using a custom endpoint, it is worth noting that the default is to use a `GRPCSpanExporter`. If you'd like to use a `HTTPSpanExporter` instead, specify the transport as shown below:
 
 ```python
-register_otel(
-    # other options...
-    log_to_console=True
+from arize.otel import register, Transport
+register(
+    endpoints = "https://my-custom-endpoint"
+    transport = Transport.HTTP,
+    # any other options...
 )
 ```
 
@@ -170,10 +137,107 @@ register_otel(
 We default to using [BatchSpanProcessor](https://opentelemetry.io/docs/languages/js/instrumentation/#picking-the-right-span-processor) from OpenTelemetry because it is non-blocking in case telemetry goes down. In contrast, "SimpleSpanProcessor processes spans as they are created." This can be helpful in development. You can use `SimpleSpanProcessor` with the option `use_batch_processor=False`.
 
 ```python
-register_otel(
+from arize.otel import register
+register(
     # other options...
-    use_batch_processor=False
+    batch=False
 )
+```
+
+### Debug
+
+As you're setting up your tracing, it is helpful to print to console the spans created. You can achieve this by setting `log_to_console=True`.
+
+```python
+from arize.otel import register
+register(
+    # other options...
+    log_to_console=True
+)
+```
+
+## Using Environment Variables
+
+The register function will read from environment variables if the arguments are not passed:
+
+```python
+from arize.otel import register
+register(
+    space_id = ... # Will be read from ARIZE_SPACE_ID env var
+    api_key = ... # Will be read from ARIZE_API_KEY env var
+    project_name = ... # Will be read from ARIZE_PROJECT_NAME env var
+    endpoint = ... # Will be read from ARIZE_COLLECTOR_ENDPOINT env var, defaults to Endpoint.Arize
+)
+```
+
+In the event of conflict, if an environment variable is set but a different argument is passed, the argument passed will take precedence and the environment variable will be ignored.
+
+## Using OTel Primitives
+
+For more granular tracing configuration, these wrappers can be used as drop-in replacements for
+OTel primitives:
+
+```python
+from opentelemetry import trace as trace_api
+from arize.otel import HTTPSpanExporter, TracerProvider, SimpleSpanProcessor
+
+tracer_provider = TracerProvider()
+span_exporter = HTTPSpanExporter(endpoint=...)
+span_processor = SimpleSpanProcessor(span_exporter=span_exporter)
+tracer_provider.add_span_processor(span_processor)
+trace_api.set_tracer_provider(tracer_provider)
+```
+
+Wrappers have Arize-aware defaults to greatly simplify the OTel configuration process. A special
+`endpoint` keyword argument can be passed to either a `TracerProvider`, `SimpleSpanProcessor` or
+`BatchSpanProcessor` in order to automatically infer which `SpanExporter` to use to simplify setup.
+
+#### Specifying the `endpoint` directly
+
+```python
+from opentelemetry import trace as trace_api
+from arize.otel import TracerProvider
+
+tracer_provider = TracerProvider(endpoint="https://your-desired-endpoint.com")
+trace_api.set_tracer_provider(tracer_provider)
+```
+
+### Configuring resources
+
+```python
+# export ARIZE_COLLECTOR_ENDPOINT=https://your-desired-endpoint.com
+
+from opentelemetry import trace as trace_api
+from arize.otel import Resource, PROJECT_NAME, TracerProvider
+
+tracer_provider = TracerProvider(resource=Resource({PROJECT_NAME: "my-project"}))
+trace_api.set_tracer_provider(tracer_provider)
+```
+
+### Using a BatchSpanProcessor
+
+```python
+# export ARIZE_COLLECTOR_ENDPOINT=https://your-desired-endpoint.com
+
+from opentelemetry import trace as trace_api
+from arize.otel import TracerProvider, BatchSpanProcessor
+
+tracer_provider = TracerProvider()
+batch_processor = BatchSpanProcessor()
+tracer_provider.add_span_processor(batch_processor)
+```
+
+### Specifying a custom GRPC endpoint
+
+```python
+from opentelemetry import trace as trace_api
+from arize.otel import TracerProvider, BatchSpanProcessor, GRPCSpanExporter
+
+tracer_provider = TracerProvider()
+batch_processor = BatchSpanProcessor(
+    span_exporter=GRPCSpanExporter(endpoint="https://your-desired-endpoint.com")
+)
+tracer_provider.add_span_processor(batch_processor)
 ```
 
 ## Questions?

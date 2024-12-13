@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-path = "src/arize_otel/version.py"
+path = "src/arize/otel/version.py"
 
 [tool.hatch.build]
 only-packages = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/arize_otel"]
+packages = ["src/arize"]
 
 [project]
 name = "arize-otel"
