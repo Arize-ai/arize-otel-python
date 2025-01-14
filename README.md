@@ -86,7 +86,8 @@ To send traces to Arize you need to authenticate via the Space ID and API Key. Y
 
 ```python
 from arize.otel import register
-register(
+
+tracer_provider = register(
     space_id = "your-arize-space-id",
     api_key = "your-arize-api-key",
     project_name = "your-model-id",
@@ -97,7 +98,8 @@ If you are located in the European Union, you'll need to specify the correspondi
 
 ```python
 from arize.otel import register, Endpoint
-register(
+
+tracer_provider = register(
     endpoint=Endpoint.ARIZE_EUROPE,
     space_id = "your-arize-space-id",
     api_key = "your-arize-api-key",
@@ -113,7 +115,8 @@ Sending traces to a collector on a custom endpoint is simple, you just need to p
 
 ```python
 from arize.otel import register
-register(
+
+tracer_provider = register(
     endpoint = "https://my-custom-endpoint"
     # any other options...
 )
@@ -125,7 +128,8 @@ If you're using endpoints from the `Endpoint` enum, you do not need to do this, 
 
 ```python
 from arize.otel import register, Transport
-register(
+
+tracer_provider = register(
     endpoint = "https://my-custom-endpoint"
     transport = Transport.HTTP,
     # any other options...
@@ -138,7 +142,8 @@ We default to using [BatchSpanProcessor](https://opentelemetry.io/docs/languages
 
 ```python
 from arize.otel import register
-register(
+
+tracer_provider = register(
     # other options...
     batch=False
 )
@@ -150,7 +155,8 @@ As you're setting up your tracing, it is helpful to print to console the spans c
 
 ```python
 from arize.otel import register
-register(
+
+tracer_provider = register(
     # other options...
     log_to_console=True
 )
@@ -162,7 +168,8 @@ The register function will read from environment variables if the arguments are 
 
 ```python
 from arize.otel import register
-register(
+
+tracer_provider = register(
     space_id = ... # Will be read from ARIZE_SPACE_ID env var
     api_key = ... # Will be read from ARIZE_API_KEY env var
     project_name = ... # Will be read from ARIZE_PROJECT_NAME env var
