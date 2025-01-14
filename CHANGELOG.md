@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.1...arize-otel-python/v0.7.2) (2025-01-14)
+
+
+### 📚 Documentation
+
+* Improve README ([#40209](https://github.com/Arize-ai/arize/issues/40209)) ([1a90375](https://github.com/Arize-ai/arize/commit/1a9037575b0631025d6046f1fc38cb7e94ba8a25))
+
 ## [0.7.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.0...arize-otel-python/v0.7.1) (2024-12-13)
 
 
