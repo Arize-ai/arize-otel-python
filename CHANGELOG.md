@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.3...arize-otel-python/v0.8.0) (2025-02-07)
+
+
+### 🎁 New Features
+
+* Use Open Inference Tracer Provider in register otel ([#41342](https://github.com/Arize-ai/arize/issues/41342)) ([08309c1](https://github.com/Arize-ai/arize/commit/08309c19662ca1bcf2f8cb1fc3ad9eb54085a660))
+
+## [0.7.3](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.2...arize-otel-python/v0.7.3) (2025-01-21)
+
+
+### 🐛 Bug Fixes
+
+* Set global tracer by default ([#40477](https://github.com/Arize-ai/arize/issues/40477)) ([3eafe8a](https://github.com/Arize-ai/arize/commit/3eafe8a9494e9b5aae71ba76dbc59b5e4e7c0043))
+
 ## [0.7.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.1...arize-otel-python/v0.7.2) (2025-01-14)
 
 

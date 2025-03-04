@@ -44,6 +44,7 @@ classifiers = [
     "Topic :: System :: Monitoring",
 ]
 dependencies = [
+    "openinference-instrumentation>=0.1.22",
     "openinference-semantic-conventions>=0.1.5",
     "opentelemetry-sdk>=1.22",
     "opentelemetry-exporter-otlp>=1.22",

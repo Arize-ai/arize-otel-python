@@ -15,7 +15,7 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
 )
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import SpanProcessor
-from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
+from openinference.instrumentation import TracerProvider as _TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExporter
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor as _SimpleSpanProcessor
@@ -55,7 +55,7 @@ def register(
     endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
     transport: Transport = Transport.GRPC,
     batch: bool = True,
-    set_global_tracer_provider: bool = False,
+    set_global_tracer_provider: bool = True,
     headers: Optional[Dict[str, str]] = None,
     verbose: bool = True,
     log_to_console: bool = False,
@@ -85,7 +85,7 @@ def register(
         batch (bool): If True, spans will be processed using a BatchSpanProcessor. If False, spans
             will be processed one at a time using a SimpleSpanProcessor. Defaults to False.
         set_global_tracer_provider (bool): If True, sets the TracerProvider as the global tracer
-            provider. Defaults to False.
+            provider. Defaults to True.
         headers (dict): Optional headers to include in requests to the collector.
             Defaults to None.
         verbose (bool): If True, prints configuration details to stdout. Defaults to True.
