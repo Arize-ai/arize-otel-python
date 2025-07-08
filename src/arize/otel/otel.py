@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from urllib.parse import urlparse
 
+from openinference.instrumentation import TracerProvider as _TracerProvider
 from openinference.semconv.resource import ResourceAttributes as _ResourceAttributes
 from opentelemetry import trace as trace_api
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
@@ -15,7 +16,6 @@ from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
 )
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import SpanProcessor
-from openinference.instrumentation import TracerProvider as _TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExporter
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor as _SimpleSpanProcessor
@@ -241,7 +241,15 @@ class TracerProvider(_TracerProvider):
             if processors := self._active_span_processor._span_processors:
                 if len(processors) == 1:
                     span_processor = self._active_span_processor._span_processors[0]
-                    if exporter := getattr(span_processor, "span_exporter"):
+                    # Handle both old and new attribute locations for OpenTelemetry compatibility
+                    # OpenTelemetry v1.34.0+ moved exporter from span_exporter to _batch_processor._exporter
+                    # https://github.com/open-telemetry/opentelemetry-python/pull/4580
+                    exporter = getattr(
+                        getattr(span_processor, "_batch_processor", None),
+                        "_exporter",
+                        None,
+                    ) or getattr(span_processor, "span_exporter", None)
+                    if exporter:
                         processor_name = span_processor.__class__.__name__
                         endpoint = exporter._endpoint
                         transport = _exporter_transport(exporter)
@@ -448,7 +456,13 @@ class HTTPSpanExporter(_HTTPSpanExporter):
                 headers[header_field.lower()] = value
 
             # If the auth header is not in the headers, add it
-            if "space_id" not in headers or "api_key" not in headers:
+            miss_authorization = (
+                "authorization" not in headers and "api_key" not in headers
+            )
+            miss_space_id = (
+                "space_id" not in headers and "arize-space-id" not in headers
+            )
+            if miss_authorization or miss_space_id:
                 bound_args.arguments["headers"] = {
                     **headers,
                     **(auth_header or dict()),
@@ -546,8 +560,11 @@ def _printable_headers(
 
 def _get_arize_auth_headers(space_id: str, api_key: str) -> Dict[str, str]:
     return {
-        "space_id": space_id,
-        "api_key": api_key,
+        "authorization": api_key,
+        "api_key": api_key,  # deprecated, will be removed in future versions
+        "arize-space-id": space_id,
+        "space_id": space_id,  # deprecated, will be removed in future versions
+        "arize-interface": "otel",
     }
 
 

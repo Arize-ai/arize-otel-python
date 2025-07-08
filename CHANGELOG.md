@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.8.2...arize-otel-python/v0.9.0) (2025-07-08)
+
+
+### 🎁 New Features
+
+* add Python 3.13 support ([#48947](https://github.com/Arize-ai/arize/issues/48947)) ([8699a15](https://github.com/Arize-ai/arize/commit/8699a153086c95693ca0e93e36eeebc4155f062a))
+
+## [0.8.2](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.8.1...arize-otel-python/v0.8.2) (2025-06-04)
+
+
+### 🐛 Bug Fixes
+
+* handle attribute change in opentelemetry-exporter-otlp ([#47227](https://github.com/Arize-ai/arize/issues/47227)) ([fc2d484](https://github.com/Arize-ai/arize/commit/fc2d4841e36f4a30a37a2407b2d60b910135e24b))
+
+## [0.8.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.8.0...arize-otel-python/v0.8.1) (2025-04-14)
+
+
+### 🐛 Bug Fixes
+
+* Add headers and mark underscored headers for deprecation ([#44341](https://github.com/Arize-ai/arize/issues/44341)) ([5642910](https://github.com/Arize-ai/arize/commit/5642910b26c3d82707b0128d31be48ef40b43edd))
+
 ## [0.8.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.7.3...arize-otel-python/v0.8.0) (2025-02-07)
 
 
