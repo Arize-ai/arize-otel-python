@@ -15,7 +15,7 @@ packages = ["src/arize"]
 name = "arize-otel"
 description = "Helper package for OTEL setup to send traces to Arize & Phoenix"
 readme = "README.md"
-requires-python = ">=3.8, <3.13"
+requires-python = ">=3.8, <3.14"
 license = { text = "BSD" }
 keywords = [
     "Observability",
@@ -37,6 +37,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
