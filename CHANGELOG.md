@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.12.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.11.0...arize-otel-python/v0.12.0) (2026-03-30)
+
+
+### 🎁 New Features
+
+* **arize-otel:** enable Python 3.14 support ([#67053](https://github.com/Arize-ai/arize/issues/67053)) ([2e4b27a](https://github.com/Arize-ai/arize/commit/2e4b27a3879667553f9d5e3af02ba720e2f97395))
+
+## [0.11.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.10.0...arize-otel-python/v0.11.0) (2025-10-30)
+
+
+### 🎁 New Features 
+
+* support Arize otel tracing routing to multiple spaces/projects ([#54935](https://github.com/Arize-ai/arize/issues/54935)) ([3107b1c](https://github.com/Arize-ai/arize/commit/3107b1c9e16558703d60fa64a80fe975b968cd6a))
+
+## [0.10.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.9.0...arize-otel-python/v0.10.0) (2025-08-08)
+
+
+### 🎁 New Features
+
+* Appending '/traces' to Arize endpoint whenusing HTTP ([#50119](https://github.com/Arize-ai/arize/issues/50119)) ([a1b8bae](https://github.com/Arize-ai/arize/commit/a1b8bae549e304a4493b2cba8e61a84840348eb9))
+
 ## [0.9.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.8.2...arize-otel-python/v0.9.0) (2025-07-08)
 
 

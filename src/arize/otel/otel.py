@@ -1,13 +1,18 @@
 import inspect
+import logging
 import os
 import sys
+import threading
+from contextlib import contextmanager
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
+import typing
 from urllib.parse import urlparse
 
 from openinference.instrumentation import TracerProvider as _TracerProvider
 from openinference.semconv.resource import ResourceAttributes as _ResourceAttributes
 from opentelemetry import trace as trace_api
+from opentelemetry import context as context_api
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
     OTLPSpanExporter as _GRPCSpanExporter,
 )
@@ -19,6 +24,7 @@ from opentelemetry.sdk.trace import SpanProcessor
 from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SpanExporter
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor as _SimpleSpanProcessor
+from opentelemetry.sdk.trace import ReadableSpan
 
 from .settings import (
     ENV_ARIZE_API_KEY,
@@ -31,6 +37,16 @@ from .settings import (
 )
 
 PROJECT_NAME = _ResourceAttributes.PROJECT_NAME
+
+logger = logging.getLogger(__name__)
+
+# Arize routing attributes
+ARIZE_SPACE_ID_ATTR = "arize.space_id"
+ARIZE_PROJECT_NAME_ATTR = "arize.project.name"
+
+# Context keys for routing
+_ARIZE_SPACE_ID_CONTEXT_KEY = context_api.create_key("arize.space_id")
+_ARIZE_PROJECT_NAME_CONTEXT_KEY = context_api.create_key("arize.project.name")
 
 
 class Endpoint(str, Enum):
@@ -45,6 +61,64 @@ class Transport(str, Enum):
 
 
 EndpointType = Union[str, Endpoint]
+
+
+@contextmanager
+def set_routing_context(space_id: str, project_name: str):
+    """
+    Context manager to set routing context that propagates to all child spans.
+
+    When using `register_with_routing()`, this context manager allows you to set the
+    space_id and project_name at a high level (e.g., per request or per operation), and
+    all spans created within this context will inherit these values unless explicitly
+    overridden by span attributes.
+
+    IMPORTANT: both space_id and project_name must be provided for routing to work; otherwise,
+    the routing will not be applied.
+
+    The context sets the following span attributes:
+    - `arize.space_id`: Routes spans to the specified Arize space
+    - `arize.project.name`: Sets the project name within that space
+
+    Args:
+        space_id (str, default ""): The Arize space ID to route spans to.
+        project_name (str, default ""): The project name to associate with spans.
+
+    Example:
+        ```python
+        from arize.otel import register_with_routing, set_routing_context
+
+        tracer_provider = register_with_routing(api_key="your-api-key")
+        tracer = tracer_provider.get_tracer(__name__)
+
+        # Set context for a request/operation
+        with set_routing_context(space_id="space-123", project_name="my-project"):
+            with tracer.start_as_current_span("parent_operation"):
+                # This span and all children will use space-123 and my-project
+                # Attributes set: arize.space_id="space-123", arize.project.name="my-project"
+                with tracer.start_as_current_span("child_operation"):
+                    # Child inherits the context automatically
+                    pass
+        ```
+    """
+    ctx = context_api.get_current()
+
+    if space_id:
+        ctx = context_api.set_value(_ARIZE_SPACE_ID_CONTEXT_KEY, space_id, ctx)
+
+    if project_name:
+        ctx = context_api.set_value(_ARIZE_PROJECT_NAME_CONTEXT_KEY, project_name, ctx)
+
+    if not space_id or not project_name:
+        logger.warning(
+            "Both space_id and project_name must be provided for routing to work"
+        )
+
+    token = context_api.attach(ctx)
+    try:
+        yield
+    finally:
+        context_api.detach(token)
 
 
 def register(
@@ -145,7 +219,7 @@ def register(
 
     details = tracer_provider._tracing_details()
     if verbose:
-        print(f"{details}" f"{global_provider_msg}")
+        print(f"{details}{global_provider_msg}")
     return tracer_provider
 
 
@@ -407,6 +481,260 @@ class BatchSpanProcessor(_BatchSpanProcessor):
         super().__init__(span_exporter, **kwargs)
 
 
+class ArizeRoutingSpanProcessor(SpanProcessor):
+    """
+    Routing Processor implementation which delegates to a set of `SpanProcessor`s based on the span's attributes.
+
+    `RoutingSpanProcessor` is an implementation of `SpanProcessor` that dynamically creates and delegates
+    to `SpanProcessor`s based on the span's `arize.space_id` attribute. Project names are set via the
+    span's `arize.project.name` attribute or default to "default".
+
+    Args:
+        api_key (str): The API key for authenticating with Arize.
+        endpoint (EndpointType): The collector endpoint to which spans will be exported.
+        transport (Transport): The transport mechanism to use for exporting spans.
+        batch (bool): If True, spans will be processed using BatchSpanProcessor. If False, uses SimpleSpanProcessor.
+        headers (dict, optional): Optional headers to include in the request to the collector.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        endpoint: EndpointType,
+        transport: Transport,
+        batch: bool = True,
+        headers: Optional[Dict[str, str]] = None,
+    ):
+        self._api_key = api_key
+        self._endpoint = endpoint
+        self._transport = transport
+        self._batch = batch
+        self._headers = headers
+        self._processors: Dict[str, SpanProcessor] = {}
+        self._lock = threading.Lock()
+
+    def on_start(self, span, parent_context=None):
+        """
+        Called when a span is started. Sets routing attributes from context if not already set.
+
+        This allows context set by `set_routing_context()` to automatically propagate Arize
+        routing attributes (space_id and project_name) to all child spans.
+        """
+        if ARIZE_SPACE_ID_ATTR not in span.attributes:
+            ctx = (
+                parent_context
+                if parent_context is not None
+                else context_api.get_current()
+            )
+            context_space_id = context_api.get_value(
+                _ARIZE_SPACE_ID_CONTEXT_KEY, context=ctx
+            )
+            if context_space_id is not None:
+                span.set_attribute(ARIZE_SPACE_ID_ATTR, context_space_id)
+
+        if ARIZE_PROJECT_NAME_ATTR not in span.attributes:
+            ctx = (
+                parent_context
+                if parent_context is not None
+                else context_api.get_current()
+            )
+            context_project_name = context_api.get_value(
+                _ARIZE_PROJECT_NAME_CONTEXT_KEY, context=ctx
+            )
+            if context_project_name is not None:
+                span.set_attribute(ARIZE_PROJECT_NAME_ATTR, context_project_name)
+
+        space_id = span.attributes.get(ARIZE_SPACE_ID_ATTR)
+        if space_id is None:
+            return
+
+        processor = self._get_or_create_processor(space_id)
+        processor.on_start(span)
+
+    def on_end(self, span: ReadableSpan):
+        """
+        Called when a span ends. Routes the span to the appropriate processor based on space_id.
+        """
+        # Get space_id from span attributes (which should have been set by on_start from context)
+        space_id = span.attributes.get(ARIZE_SPACE_ID_ATTR)
+        if space_id is None:
+            logger.warning(
+                "No 'arize.space_id' attribute found in span attributes! Skipping span."
+            )
+            return
+
+        # Project name should be set as a span attribute, via the on_start method from context
+        # If not set, do not continue since we cannot send spans to Arizewithout a project name
+        if ARIZE_PROJECT_NAME_ATTR not in span.attributes:
+            logger.warning(
+                f"No project name attribute (arize.project.name) found for span '{span.name}'. Project name is required for Arize span routing. Skipping span."
+            )
+            return
+
+        processor = self._get_or_create_processor(space_id)
+        processor.on_end(span)
+
+    def shutdown(self):
+        with self._lock:
+            return all(
+                processor.shutdown()
+                for processor in self._processors.values()
+                if processor
+            )
+
+    def force_flush(self, timeout_millis: typing.Optional[int] = None) -> bool:
+        with self._lock:
+            return all(
+                processor.force_flush(timeout_millis)
+                for processor in self._processors.values()
+                if processor
+            )
+
+    def _get_or_create_processor(self, space_id: str) -> SpanProcessor:
+        """Get existing processor for space_id or create a new one."""
+        # First check to see if we have already created a span processor for this space_id
+        # If we have, return the existing processor
+        if space_id in self._processors:
+            return self._processors[space_id]
+
+        # If we haven't, acquire lock to create new span processor for the newly seen space_id
+        with self._lock:
+            # Double-check in case another thread created it
+            if space_id in self._processors:
+                return self._processors[space_id]
+
+            # Create new processor for the  space_id which we haven't seen before
+            if self._batch:
+                processor = BatchSpanProcessor(
+                    space_id=space_id,
+                    api_key=self._api_key,
+                    endpoint=self._endpoint,
+                    transport=self._transport,
+                    headers=self._headers,
+                )
+            else:
+                processor = SimpleSpanProcessor(
+                    space_id=space_id,
+                    api_key=self._api_key,
+                    endpoint=self._endpoint,
+                    transport=self._transport,
+                    headers=self._headers,
+                )
+
+            self._processors[space_id] = processor
+
+            logger.info(f"Created new span processor for Arize space_id: {space_id}")
+            return processor
+
+
+def register_with_routing(
+    *,
+    api_key: str = get_env_arize_api_key(),
+    endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+    transport: Transport = Transport.GRPC,
+    batch: bool = True,
+    set_global_tracer_provider: bool = True,
+    headers: Optional[Dict[str, str]] = None,
+    verbose: bool = True,
+    log_to_console: bool = False,
+) -> _TracerProvider:
+    """
+    Creates an OpenTelemetry TracerProvider for enabling OpenInference tracing with dynamic routing support.
+
+    This function creates a TracerProvider that dynamically routes spans to different Arize spaces based
+    on the `arize.space_id` span attribute. Span processors are created on-demand for each space_id
+    encountered. Project names are set via the `arize.project.name` span attribute.
+
+    Important: Use `set_routing_context()` to set context that propagates the required routing attributes to all child spans.
+
+    Performance Note: A dedicated span processor is created for each unique space_id and cached in memory
+    for the lifetime of the application. If routing to many different spaces (hundreds or thousands),
+    memory usage will grow accordingly.
+
+    Args:
+        api_key (str): The API key for authenticating with Arize. This single API key will be used
+            for all spaces. If not provided, the `ARIZE_API_KEY` environment variable will be used.
+        endpoint (EndpointType): The collector endpoint to which spans will be exported.
+            If not provided, the `ARIZE_COLLECTOR_ENDPOINT` environment variable or the default
+            `Endpoint.ARIZE` will be used.
+        transport (Transport): The transport mechanism to use for exporting spans.
+            Options are `Transport.GRPC`, `Transport.HTTP`, or `Transport.HTTPS`.
+            Defaults to `Transport.GRPC`.
+        batch (bool): If True, spans will be processed using a BatchSpanProcessor. If False, spans
+            will be processed one at a time using a SimpleSpanProcessor. Defaults to True.
+        set_global_tracer_provider (bool): If True, sets the TracerProvider as the global tracer
+            provider. Defaults to True.
+        headers (dict): Optional headers to include in requests to the collector.
+            Defaults to None.
+        verbose (bool): If True, prints configuration details to stdout. Defaults to True.
+        log_to_console (bool): If True, spans will be logged to the console, useful for debugging.
+            Defaults to False.
+    """
+    _validate_routing_inputs(
+        api_key=api_key,
+        endpoint=endpoint,
+        transport=transport,
+    )
+
+    resource = Resource.create()
+    tracer_provider = _TracerProvider(resource=resource)
+
+    routing_span_processor = ArizeRoutingSpanProcessor(
+        api_key=api_key,
+        endpoint=endpoint,
+        transport=transport,
+        batch=batch,
+        headers=headers,
+    )
+    tracer_provider.add_span_processor(routing_span_processor)
+
+    if log_to_console:
+        tracer_provider.add_span_processor(
+            span_processor=_SimpleSpanProcessor(
+                span_exporter=ConsoleSpanExporter(),
+            )
+        )
+
+    if set_global_tracer_provider:
+        trace_api.set_tracer_provider(tracer_provider)
+        global_provider_msg = (
+            "|  \n"
+            "|  `register_with_routing` has set this TracerProvider as the global OpenTelemetry default.\n"
+            "|  To disable this behavior, call `register_with_routing` with "
+            "`set_global_tracer_provider=False`.\n"
+        )
+    else:
+        global_provider_msg = ""
+
+    if verbose:
+        if os.name == "nt":
+            details_header = "OpenTelemetry Tracing Details (Dynamic Routing)"
+        else:
+            details_header = "🔭 OpenTelemetry Tracing Details (Dynamic Routing) 🔭"
+
+        details_msg = (
+            f"{details_header}\n"
+            f"|  API Key: ****\n"
+            f"|  Collector Endpoint: {endpoint}\n"
+            f"|  Transport: {transport.value}\n"
+            f"|  Batch Processing: {batch}\n"
+            f"|  Routing: Dynamic (processors created on-demand per space_id)\n"
+            "|  \n"
+            "|  Span attributes used for routing:\n"
+            "|    - arize.space_id: Routes to different Arize spaces\n"
+            "|    - arize.project.name: Sets the project name within each space\n"
+            "|  \n"
+            "|  Two ways to set routing attributes:\n"
+            "|    1. Set span attributes: span.set_attribute('arize.space_id', 'space-123')\n"
+            "|    2. Use context: with set_routing_context(space_id='space-123', project_name='my-project')\n"
+            "|  \n"
+            "|  Context propagates to all child spans automatically!\n"
+        )
+        print(f"{details_msg}{global_provider_msg}")
+
+    return tracer_provider
+
+
 class HTTPSpanExporter(_HTTPSpanExporter):
     """
     OTLP span exporter using HTTP.
@@ -566,6 +894,24 @@ def _get_arize_auth_headers(space_id: str, api_key: str) -> Dict[str, str]:
         "space_id": space_id,  # deprecated, will be removed in future versions
         "arize-interface": "otel",
     }
+
+
+def _validate_routing_inputs(
+    api_key: str,
+    endpoint: EndpointType,
+    transport: Transport,
+) -> None:
+    """Validate inputs for routing configuration."""
+    if not api_key:
+        raise ValueError(
+            "api_key is required. Please pass it as argument or "
+            f"set the {ENV_ARIZE_API_KEY} environment variable."
+        )
+    if not isinstance(api_key, str):
+        raise ValueError("api_key must be a string")
+
+    _validate_endpoint(endpoint)
+    _validate_transport(transport)
 
 
 def _validate_inputs(

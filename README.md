@@ -36,6 +36,7 @@
   - [Specify exporter type](#specify-exporter-type)
   - [Turn off batch processing of spans](#turn-off-batch-processing-of-spans)
   - [Debug](#debug)
+- [Routing Traces to Different Arize Spaces and Projects](#routing-traces-to-different-arize-spaces-and-projects)
 - [Using Environment Variables](#using-environment-variables)
 - [Using OTel Primitives](#using-otel-primitives)
   - [Specifying the `endpoint` directly](#specifying-the-endpoint-directly)
@@ -161,6 +162,46 @@ tracer_provider = register(
     log_to_console=True
 )
 ```
+
+## Routing Traces to Different Arize Spaces and Projects
+
+The `register_with_routing` function enables dynamic routing of traces to different Arize spaces and projects. This is useful when you need to route traces from a single application to multiple Arize spaces (e.g., based on the team or service generating the request).
+
+### Usage
+
+First, set up the tracer provider with routing enabled via `register_with_routing`. Note that unlike the standard `register()` function, you don't need to specify a single `space_id` or `project_name` upfront.
+
+Then, call `with set_routing_context()` to set the space id and project to which traces should be routed. The `set_routing_context()` context manager uses OpenTelemetry's context API to set routing attributes that automatically propagate to all child spans within that context. This works seamlessly with auto-instrumentors (OpenAI, LangChain, LlamaIndex, etc.) because the routing attributes are inherited by all spans created within the context. 
+
+```python
+from arize.otel import register_with_routing, set_routing_context
+from openinference.instrumentation.openai import OpenAIInstrumentor
+
+tracer_provider = register_with_routing(
+    api_key="your-arize-api-key",  
+    # endpoint and transport are optional and default to Arize's GRPC endpoint
+)
+
+OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
+
+current_project_id = "project-123"
+current_space_id = "current-space"
+
+# Both space_id and project_name must be provided for routing to work;
+# otherwise, spans will be skipped and not sent to Arize
+with set_routing_context(space_id=current_space_id, project_name=current_project_id):
+    # All OpenAI calls and spans within this context will be routed to the specified space and project
+    response = openai_client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "Hello!"}]
+    )
+    # Traces automatically go to "current-space" with project name "project-123"
+```
+
+### Performance Considerations
+
+The routing processor creates a dedicated span processor (with its own exporter) for each unique `space_id` encountered. These processors are cached in memory for the lifetime of the application. If your application routes to many different spaces (e.g., hundreds or thousands), memory usage will grow accordingly.
+
 
 ## Using Environment Variables
 
