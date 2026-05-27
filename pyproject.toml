@@ -54,9 +54,17 @@ dependencies = [
 ]
 dynamic = ["version"]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4,<9",
+]
+
 [project.urls]
 Documentation = "https://docs.arize.com/arize/large-language-models/tracing"
 Issues = "https://github.com/Arize-ai/arize-otel-python/issues"
 Source = "https://github.com/Arize-ai/arize-otel-python"
 Changelog = "https://github.com/Arize-ai/arize-otel-python/blob/main/CHANGELOG.md"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

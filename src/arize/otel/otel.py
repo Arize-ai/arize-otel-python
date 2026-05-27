@@ -5,6 +5,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from enum import Enum
+from importlib.metadata import entry_points
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import typing
 from urllib.parse import urlparse
@@ -133,6 +134,8 @@ def register(
     headers: Optional[Dict[str, str]] = None,
     verbose: bool = True,
     log_to_console: bool = False,
+    auto_instrument: bool = False,
+    span_processors: Optional[List[SpanProcessor]] = None,
 ) -> _TracerProvider:
     """
     Creates an OpenTelemetry TracerProvider for enabling OpenInference tracing.
@@ -165,6 +168,11 @@ def register(
         verbose (bool): If True, prints configuration details to stdout. Defaults to True.
         log_to_console (bool): If True, spans will be logged to the console, useful for debugging.
             Defaults to False.
+        auto_instrument (bool): If True, automatically instruments all installed OpenInference
+            libraries that expose an OpenInference instrumentor entry point. Defaults to False.
+        span_processors (list): Optional span processors to add before the Arize exporter
+            processor. This is intended for processors that enrich or transform spans in-place
+            before export.
     """
     _validate_inputs(space_id, api_key, project_name, endpoint, transport)
 
@@ -197,6 +205,9 @@ def register(
             transport=transport,
             headers=headers,
         )
+    has_custom_span_processors = bool(span_processors)
+    for custom_span_processor in span_processors or []:
+        tracer_provider.add_span_processor(custom_span_processor)
     tracer_provider.add_span_processor(span_processor)
     if log_to_console:
         tracer_provider.add_span_processor(
@@ -204,7 +215,9 @@ def register(
                 span_exporter=ConsoleSpanExporter(),
             )
         )
-    tracer_provider._default_processor = True
+    tracer_provider._default_processor = not (
+        has_custom_span_processors or auto_instrument
+    )
 
     if set_global_tracer_provider:
         trace_api.set_tracer_provider(tracer_provider)
@@ -216,6 +229,9 @@ def register(
         )
     else:
         global_provider_msg = ""
+
+    if auto_instrument:
+        _auto_instrument_installed_openinference_libraries(tracer_provider)
 
     details = tracer_provider._tracing_details()
     if verbose:
@@ -979,3 +995,30 @@ def _get_class_signature(fn: Type[Any]) -> inspect.Signature:
         return new_sig
     else:
         raise RuntimeError("Unsupported Python version")
+
+
+def _auto_instrument_installed_openinference_libraries(
+    tracer_provider: _TracerProvider,
+) -> None:
+    discovered_entry_points = entry_points()
+    if hasattr(discovered_entry_points, "select"):
+        openinference_entry_points = discovered_entry_points.select(
+            group="openinference_instrumentor"
+        )
+    else:
+        openinference_entry_points = discovered_entry_points.get(
+            "openinference_instrumentor", []
+        )
+
+    if not openinference_entry_points:
+        logger.warning(
+            "No OpenInference instrumentors found. "
+            "Maybe you need to update your OpenInference version? "
+            "Skipping auto-instrumentation.",
+        )
+        return
+
+    for entry_point in openinference_entry_points:
+        instrumentor_class = entry_point.load()
+        instrumentor = instrumentor_class()
+        instrumentor.instrument(tracer_provider=tracer_provider)

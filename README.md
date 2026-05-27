@@ -31,6 +31,8 @@
 - [Overview](#overview)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
+  - [Automatically instrument installed OpenInference packages](#automatically-instrument-installed-openinference-packages)
+  - [Add pre-export span processors](#add-pre-export-span-processors)
   - [Send traces to Arize](#send-traces-to-arize)
   - [Send traces to Custom Endpoint](#send-traces-to-custom-endpoint)
   - [Specify exporter type](#specify-exporter-type)
@@ -62,7 +64,26 @@ pip install arize-otel
 
 The `arize.otel` module provides a high-level `register` function to configure OpenTelemetry tracing by returning a `TracerProvider`. The register function can also configure headers and whether or not to process spans one by one or by batch.
 
-The following examples showcase how to use `register` to setup Opentelemetry in order to send traces to a collector. However, this is **NOT** the same as [instrumenting](https://docs.arize.com/phoenix/tracing/concepts-tracing/how-does-tracing-work) your application. For instance, you can use any of our [OpenInference AutoInstrumentators](https://github.com/Arize-ai/openinference). Assuming we use the OpenAI AutoInstrumentation, we need to run `instrument()` _after_ using `register`:
+The following examples showcase how to use `register` to setup Opentelemetry in order to send traces to a collector. However, this is **NOT** the same as [instrumenting](https://docs.arize.com/phoenix/tracing/concepts-tracing/how-does-tracing-work) your application. You can instrument installed [OpenInference instrumentors](https://github.com/Arize-ai/openinference) automatically with `auto_instrument=True`, or manually call a specific instrumentor after `register`.
+
+### Automatically instrument installed OpenInference packages
+
+Set `auto_instrument=True` to discover installed OpenInference instrumentors and call `instrument(tracer_provider=...)` for each one:
+
+```python
+from arize.otel import register
+
+tracer_provider = register(
+    space_id="your-arize-space-id",
+    api_key="your-arize-api-key",
+    project_name="your-model-id",
+    auto_instrument=True,
+)
+```
+
+`auto_instrument=True` only instruments libraries with a corresponding OpenInference instrumentation package installed in your Python environment.
+
+To instrument one library explicitly instead, run `instrument()` _after_ using `register`:
 
 ```python
 from arize.otel import register
@@ -80,6 +101,24 @@ OpenAIInstrumentor().instrument(tracer_provider=tracer_provider)
 The above code snippet will yield a fully setup and instrumented application. It is worth noting that this is completely **optional**. The usage of this package is for convenience only, you can set up OpenTelemetry and send traces to Arize without installing this or any other package from Arize.
 
 In the following sections we have examples on how to use the `register` function:
+
+### Add pre-export span processors
+
+Some OpenInference integrations, such as processor-style integrations that transform native OpenTelemetry spans into OpenInference attributes, expose a `SpanProcessor` instead of an `instrument()` method. Pass those processors to `register(span_processors=[...])` so they run before the Arize exporter while `register` continues to configure Arize authentication headers, endpoint, transport, batching, and project metadata:
+
+```python
+from arize.otel import register
+from openinference.instrumentation.pydantic_ai import OpenInferenceSpanProcessor
+
+tracer_provider = register(
+    space_id="your-arize-space-id",
+    api_key="your-arize-api-key",
+    project_name="your-model-id",
+    span_processors=[OpenInferenceSpanProcessor()],
+)
+```
+
+Use `span_processors` for processors that enrich or transform spans before export. You do not need to create a separate Arize `SpanExporter` just to preserve Arize headers.
 
 ### Send traces to Arize
 

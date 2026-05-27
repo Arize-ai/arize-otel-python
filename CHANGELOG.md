@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.12.0...arize-otel-python/v0.13.0) (2026-05-27)
+
+
+### 🎁 New Features
+
+* add auto instrumentation support ([#72561](https://github.com/Arize-ai/arize/issues/72561)) ([ebdf434](https://github.com/Arize-ai/arize/commit/ebdf4342ca80aef8a8a2e6c86892d35088e53f18)), closes [#62548](https://github.com/Arize-ai/arize/issues/62548)
+
 ## [0.12.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.11.0...arize-otel-python/v0.12.0) (2026-03-30)
 
 
