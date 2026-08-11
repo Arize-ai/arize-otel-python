@@ -29,6 +29,7 @@
 ---
 
 - [Overview](#overview)
+- [Uploading large blobs from OpenInference](#uploading-large-blobs-from-openinference)
 - [Installation](#installation)
 - [Quickstart](#quickstart)
   - [Automatically instrument installed OpenInference packages](#automatically-instrument-installed-openinference-packages)
@@ -50,7 +51,52 @@
 
 ## Overview
 
-The `arize-otel` package provides a lightweight wrapper around OpenTelemetry primitives with Arize-aware defaults and options. It is meant to be a very lightweight convenience package to help set up OpenTelemetry for tracing LLM applications and send the traces to [Arize](https://arize.com/).
+`arize-otel` provides Arize-aware OpenTelemetry defaults for instrumenting LLM
+applications and exporting their traces to [Arize](https://arize.com/).
+
+## Uploading large blobs from OpenInference
+
+OpenInference instrumentors can capture images as base64-encoded span
+attributes. `arize-otel` can upload oversized images to Arize and replace the
+inline content with a lightweight `arize://` reference. This avoids sending
+large image payloads through the trace exporter while preserving the image in
+Arize.
+
+Blob uploading requires Python 3.10 or newer and
+`openinference-instrumentation>=0.1.56`. Python 3.8 and 3.9 remain supported for
+tracing without blob uploading.
+
+For zero-code configuration, set the normal Arize tracing variables and select
+the registered uploader:
+
+```bash
+export ARIZE_API_KEY="..."
+export ARIZE_SPACE_ID="..."
+export ARIZE_PROJECT_NAME="my-project"
+export OPENINFERENCE_BLOB_UPLOADER="arize"
+```
+
+Use `OPENINFERENCE_BASE64_IMAGE_MAX_LENGTH` to configure the maximum image data
+URI length that OpenInference keeps inline.
+
+You can also configure the uploader explicitly:
+
+```python
+from arize.otel import ArizeBlobUploader
+from openinference.instrumentation import TraceConfig
+
+config = TraceConfig(blob_uploader=ArizeBlobUploader())
+```
+
+Uploads run in the background after a bounded one-second grant request. If a
+grant cannot be obtained, OpenInference falls back to redacting the oversized
+value. A failure after an `arize://` reference has been emitted is logged but
+cannot rewrite the exported span.
+
+Use `ARIZE_BLOB_ENDPOINT` to override the blob upload endpoint independently of
+`ARIZE_COLLECTOR_ENDPOINT`, such as for an on-prem deployment. The uploader also
+honors `set_routing_context(...)` for applications that route traces dynamically
+between spaces and projects.
 
 ## Installation
 

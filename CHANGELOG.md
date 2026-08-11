@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.13.0...arize-otel-python/v0.14.0) (2026-08-11)
+
+
+### 🎁 New Features
+
+* **arize-otel:** add OpenInference blob uploader ([#81190](https://github.com/Arize-ai/arize/issues/81190)) ([454049d](https://github.com/Arize-ai/arize/commit/454049dbd5dfb5645df16176db41ca0ba50ba945))
+
 ## [0.13.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.12.0...arize-otel-python/v0.13.0) (2026-05-27)
 
 

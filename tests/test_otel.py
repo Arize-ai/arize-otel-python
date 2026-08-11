@@ -97,6 +97,27 @@ def test_register_with_auto_instrument_calls_discovery_helper() -> None:
     assert tracer_provider._default_processor is False
 
 
+def test_register_then_add_span_processor_keeps_arize_exporter() -> None:
+    tracer_provider = register(
+        space_id="test-space",
+        api_key="test-api-key",
+        project_name="test-project",
+        batch=False,
+        verbose=False,
+        set_global_tracer_provider=False,
+    )
+
+    assert tracer_provider._default_processor is False
+
+    custom_processor = NoopSpanProcessor()
+    tracer_provider.add_span_processor(custom_processor)
+
+    processors = _get_processors(tracer_provider)
+    assert len(processors) == 2
+    assert isinstance(_get_exporter_from_processor(processors[0]), GRPCSpanExporter)
+    assert processors[1] is custom_processor
+
+
 def test_register_adds_custom_span_processors_before_arize_exporter() -> None:
     custom_processor = NoopSpanProcessor()
 

@@ -6,6 +6,7 @@ ENV_ARIZE_SPACE_ID = "ARIZE_SPACE_ID"
 ENV_ARIZE_API_KEY = "ARIZE_API_KEY"
 ENV_ARIZE_PROJECT_NAME = "ARIZE_PROJECT_NAME"
 ENV_ARIZE_COLLECTOR_ENDPOINT = "ARIZE_COLLECTOR_ENDPOINT"
+ENV_ARIZE_BLOB_ENDPOINT = "ARIZE_BLOB_ENDPOINT"
 
 
 def get_env_arize_space_id() -> str:
@@ -22,3 +23,7 @@ def get_env_project_name() -> str:
 
 def get_env_collector_endpoint() -> Optional[str]:
     return os.getenv(ENV_ARIZE_COLLECTOR_ENDPOINT)
+
+
+def get_env_blob_endpoint() -> Optional[str]:
+    return os.getenv(ENV_ARIZE_BLOB_ENDPOINT)

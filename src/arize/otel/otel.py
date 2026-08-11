@@ -122,6 +122,23 @@ def set_routing_context(space_id: str, project_name: str):
         context_api.detach(token)
 
 
+def _get_routing_context() -> Tuple[Optional[str], Optional[str]]:
+    """Return the active dynamic Arize destination, when both values are set."""
+    context = context_api.get_current()
+    space_id = context_api.get_value(
+        _ARIZE_SPACE_ID_CONTEXT_KEY,
+        context=context,
+    )
+    project_name = context_api.get_value(
+        _ARIZE_PROJECT_NAME_CONTEXT_KEY,
+        context=context,
+    )
+    if isinstance(space_id, str) and isinstance(project_name, str):
+        if space_id and project_name:
+            return space_id, project_name
+    return None, None
+
+
 def register(
     *,
     space_id: str = get_env_arize_space_id(),
@@ -205,7 +222,6 @@ def register(
             transport=transport,
             headers=headers,
         )
-    has_custom_span_processors = bool(span_processors)
     for custom_span_processor in span_processors or []:
         tracer_provider.add_span_processor(custom_span_processor)
     tracer_provider.add_span_processor(span_processor)
@@ -215,9 +231,6 @@ def register(
                 span_exporter=ConsoleSpanExporter(),
             )
         )
-    tracer_provider._default_processor = not (
-        has_custom_span_processors or auto_instrument
-    )
 
     if set_global_tracer_provider:
         trace_api.set_tracer_provider(tracer_provider)
