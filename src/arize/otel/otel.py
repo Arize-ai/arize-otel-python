@@ -35,7 +35,10 @@ from .settings import (
     get_env_arize_space_id,
     get_env_collector_endpoint,
     get_env_project_name,
+    get_env_project_type,
+    parse_project_type,
 )
+from .version import __version__
 
 PROJECT_NAME = _ResourceAttributes.PROJECT_NAME
 
@@ -44,6 +47,17 @@ logger = logging.getLogger(__name__)
 # Arize routing attributes
 ARIZE_SPACE_ID_ATTR = "arize.space_id"
 ARIZE_PROJECT_NAME_ATTR = "arize.project.name"
+ARIZE_PROJECT_TYPE_ATTR = "arize.project.type"
+
+# Shared SDK identity metadata header vocabulary (aligned with the Arize Python
+# SDK v8). Emitted on every OTLP export so the receiver can attribute ingestion
+# telemetry to this exporter/runtime — it identifies the exporter, not the
+# customer's spans.
+SDK_LANGUAGE = "python"
+SDK_PACKAGE_NAME = "arize-otel"
+PYTHON_VERSION = (
+    f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+)
 
 # Context keys for routing
 _ARIZE_SPACE_ID_CONTEXT_KEY = context_api.create_key("arize.space_id")
@@ -141,10 +155,11 @@ def _get_routing_context() -> Tuple[Optional[str], Optional[str]]:
 
 def register(
     *,
-    space_id: str = get_env_arize_space_id(),
-    api_key: str = get_env_arize_api_key(),
-    project_name: str = get_env_project_name(),
-    endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+    space_id: Optional[str] = None,
+    api_key: Optional[str] = None,
+    project_name: Optional[str] = None,
+    project_type: Optional[str] = None,
+    endpoint: Optional[EndpointType] = None,
     transport: Transport = Transport.GRPC,
     batch: bool = True,
     set_global_tracer_provider: bool = True,
@@ -170,6 +185,10 @@ def register(
         project_name (str): The name of the project to which spans will be associated. If
             not provided, the `ARIZE_PROJECT_NAME` environment variable will be used or the
             default project_name will be "default".
+        project_type (str): The Arize project type for this tracer provider. Accepted
+            values are ``application``, ``harness``, and ``experiment``. If not provided,
+            the `ARIZE_PROJECT_TYPE` environment variable will be used or the default
+            project_type will be ``application``.
         endpoint (EndpointType): The collector endpoint to which spans will be exported.
             If not provided, the `ARIZE_COLLECTOR_ENDPOINT` environment variable or the default
             `Endpoint.ARIZE` will be used.
@@ -191,9 +210,25 @@ def register(
             processor. This is intended for processors that enrich or transform spans in-place
             before export.
     """
+    if space_id is None:
+        space_id = get_env_arize_space_id()
+    if api_key is None:
+        api_key = get_env_arize_api_key()
+    if project_name is None:
+        project_name = get_env_project_name()
+    if project_type is None:
+        project_type = get_env_project_type()
+    if endpoint is None:
+        endpoint = get_env_collector_endpoint() or Endpoint.ARIZE
     _validate_inputs(space_id, api_key, project_name, endpoint, transport)
+    validated_project_type = parse_project_type(project_type)
 
-    resource = Resource.create({PROJECT_NAME: project_name})
+    resource = Resource.create(
+        {
+            PROJECT_NAME: project_name,
+            ARIZE_PROJECT_TYPE_ATTR: validated_project_type,
+        }
+    )
     tracer_provider = TracerProvider(
         space_id=space_id,
         api_key=api_key,
@@ -279,14 +314,22 @@ class TracerProvider(_TracerProvider):
     def __init__(
         self,
         *args: Any,
-        space_id: str = get_env_arize_space_id(),
-        api_key: str = get_env_arize_api_key(),
-        project_name: str = get_env_project_name(),
-        endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+        space_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        project_name: Optional[str] = None,
+        endpoint: Optional[EndpointType] = None,
         transport: Transport = Transport.GRPC,
         verbose: bool = True,
         **kwargs: Any,
     ):
+        if space_id is None:
+            space_id = get_env_arize_space_id()
+        if api_key is None:
+            api_key = get_env_arize_api_key()
+        if project_name is None:
+            project_name = get_env_project_name()
+        if endpoint is None:
+            endpoint = get_env_collector_endpoint() or Endpoint.ARIZE
         _validate_inputs(space_id, api_key, project_name, endpoint, transport)
 
         sig = _get_class_signature(_TracerProvider)
@@ -413,9 +456,9 @@ class SimpleSpanProcessor(_SimpleSpanProcessor):
     def __init__(
         self,
         span_exporter: Optional[SpanExporter] = None,
-        space_id: str = get_env_arize_space_id(),
-        api_key: str = get_env_arize_api_key(),
-        endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+        space_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        endpoint: Optional[EndpointType] = None,
         transport: Transport = Transport.GRPC,
         headers: Optional[Dict[str, str]] = None,
         **kwargs: Any,
@@ -483,9 +526,9 @@ class BatchSpanProcessor(_BatchSpanProcessor):
     def __init__(
         self,
         span_exporter: Optional[SpanExporter] = None,
-        space_id: str = get_env_arize_space_id(),
-        api_key: str = get_env_arize_api_key(),
-        endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+        space_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        endpoint: Optional[EndpointType] = None,
         transport: Transport = Transport.GRPC,
         headers: Optional[Dict[str, str]] = None,
         **kwargs: Any,
@@ -658,8 +701,8 @@ class ArizeRoutingSpanProcessor(SpanProcessor):
 
 def register_with_routing(
     *,
-    api_key: str = get_env_arize_api_key(),
-    endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+    api_key: Optional[str] = None,
+    endpoint: Optional[EndpointType] = None,
     transport: Transport = Transport.GRPC,
     batch: bool = True,
     set_global_tracer_provider: bool = True,
@@ -699,6 +742,10 @@ def register_with_routing(
         log_to_console (bool): If True, spans will be logged to the console, useful for debugging.
             Defaults to False.
     """
+    if api_key is None:
+        api_key = get_env_arize_api_key()
+    if endpoint is None:
+        endpoint = get_env_collector_endpoint() or Endpoint.ARIZE
     _validate_routing_inputs(
         api_key=api_key,
         endpoint=endpoint,
@@ -789,11 +836,17 @@ class HTTPSpanExporter(_HTTPSpanExporter):
     def __init__(
         self,
         *args: Any,
-        space_id: str = get_env_arize_space_id(),
-        api_key: str = get_env_arize_api_key(),
-        endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+        space_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        endpoint: Optional[EndpointType] = None,
         **kwargs: Any,
     ):
+        if space_id is None:
+            space_id = get_env_arize_space_id()
+        if api_key is None:
+            api_key = get_env_arize_api_key()
+        if endpoint is None:
+            endpoint = get_env_collector_endpoint() or Endpoint.ARIZE
         _validate_inputs(
             space_id, api_key, "", endpoint, Transport.HTTP, skip=["project_name"]
         )
@@ -826,6 +879,9 @@ class HTTPSpanExporter(_HTTPSpanExporter):
                 }
             else:
                 bound_args.arguments["headers"] = headers
+
+        # Always advertise SDK identity metadata alongside the caller's headers.
+        _merge_sdk_metadata_headers(bound_args)
 
         if bound_args.arguments.get("endpoint") is None:
             bound_args.arguments["endpoint"] = endpoint
@@ -860,12 +916,18 @@ class GRPCSpanExporter(_GRPCSpanExporter):
 
     def __init__(
         self,
-        space_id: str = get_env_arize_space_id(),
-        api_key: str = get_env_arize_api_key(),
-        endpoint: EndpointType = get_env_collector_endpoint() or Endpoint.ARIZE,
+        space_id: Optional[str] = None,
+        api_key: Optional[str] = None,
+        endpoint: Optional[EndpointType] = None,
         *args: Any,
         **kwargs: Any,
     ):
+        if space_id is None:
+            space_id = get_env_arize_space_id()
+        if api_key is None:
+            api_key = get_env_arize_api_key()
+        if endpoint is None:
+            endpoint = get_env_collector_endpoint() or Endpoint.ARIZE
         _validate_inputs(
             space_id, api_key, "", endpoint, Transport.GRPC, skip=["project_name"]
         )
@@ -892,6 +954,9 @@ class GRPCSpanExporter(_GRPCSpanExporter):
                 }
             else:
                 bound_args.arguments["headers"] = headers
+
+        # Always advertise SDK identity metadata alongside the caller's headers.
+        _merge_sdk_metadata_headers(bound_args)
 
         if bound_args.arguments.get("endpoint") is None:
             bound_args.arguments["endpoint"] = endpoint
@@ -922,6 +987,38 @@ def _get_arize_auth_headers(space_id: str, api_key: str) -> Dict[str, str]:
         "arize-space-id": space_id,
         "space_id": space_id,  # deprecated, will be removed in future versions
         "arize-interface": "otel",
+    }
+
+
+def _get_arize_sdk_metadata_headers() -> Dict[str, str]:
+    """Return the SDK identity metadata shared across all Arize transports.
+
+    These identify the exporter and its runtime so the receiver can enrich its
+    own ingestion spans with Datadog-searchable source metadata.
+    """
+    return {
+        "sdk-language": SDK_LANGUAGE,
+        "language-version": PYTHON_VERSION,
+        "sdk-version": __version__,
+        "sdk-package-name": SDK_PACKAGE_NAME,
+    }
+
+
+def _merge_sdk_metadata_headers(bound_args: inspect.BoundArguments) -> None:
+    """Merge Arize SDK identity metadata into the exporter's headers in place.
+
+    Existing values win on conflict, so caller-supplied headers are never
+    clobbered. Letting a caller override these keys is deliberate: unlike the v8
+    SDK — which treats them as reserved and raises if supplied — these headers
+    are telemetry-only (they exist solely so the receiver can enrich its own
+    ingestion spans) and are never used for auth, billing, or access control.
+
+    "headers" may be None at this point (an exporter constructed with no auth or
+    caller headers leaves it unset), hence the `or dict()` fallback.
+    """
+    bound_args.arguments["headers"] = {
+        **_get_arize_sdk_metadata_headers(),
+        **(bound_args.arguments.get("headers") or dict()),
     }
 
 

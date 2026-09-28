@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.14.0...arize-otel-python/v0.14.1) (2026-09-26)
+
+
+### 🐛 Bug Fixes
+
+* **arize-otel:** defer environment defaults and add project types ([#87567](https://github.com/Arize-ai/arize/issues/87567)) ([b882ba3](https://github.com/Arize-ai/arize/commit/b882ba3745d43b07eb5d0f55bf80c686c9e4dfdb))
+
 ## [0.14.0](https://github.com/Arize-ai/arize/compare/arize-otel-python/v0.13.0...arize-otel-python/v0.14.0) (2026-08-11)
 
 

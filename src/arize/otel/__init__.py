@@ -2,6 +2,7 @@ from opentelemetry.sdk.resources import Resource
 
 from .otel import (
     ARIZE_PROJECT_NAME_ATTR,
+    ARIZE_PROJECT_TYPE_ATTR,
     ARIZE_SPACE_ID_ATTR,
     PROJECT_NAME,
     ArizeRoutingSpanProcessor,
@@ -21,6 +22,7 @@ from .blob import ArizeBlobUploader
 
 __all__ = [
     "ARIZE_PROJECT_NAME_ATTR",
+    "ARIZE_PROJECT_TYPE_ATTR",
     "ARIZE_SPACE_ID_ATTR",
     "ArizeBlobClient",
     "ArizeBlobUploader",

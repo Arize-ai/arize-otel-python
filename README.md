@@ -290,20 +290,30 @@ The routing processor creates a dedicated span processor (with its own exporter)
 
 ## Using Environment Variables
 
-The register function will read from environment variables if the arguments are not passed:
+`register` and the tracing constructors read environment defaults when called. Set or update
+environment variables after importing the package and before constructing a provider or exporter.
+Omitting an environment-backed argument, or passing `None`, uses the current environment value.
+Existing providers and exporters retain their original configuration.
 
 ```python
 from arize.otel import register
 
-tracer_provider = register(
-    space_id = ... # Will be read from ARIZE_SPACE_ID env var
-    api_key = ... # Will be read from ARIZE_API_KEY env var
-    project_name = ... # Will be read from ARIZE_PROJECT_NAME env var
-    endpoint = ... # Will be read from ARIZE_COLLECTOR_ENDPOINT env var, defaults to Endpoint.Arize
-)
+tracer_provider = register()
 ```
 
-In the event of conflict, if an environment variable is set but a different argument is passed, the argument passed will take precedence and the environment variable will be ignored.
+| Argument | Environment variable | Default when unset |
+| --- | --- | --- |
+| `space_id` | `ARIZE_SPACE_ID` | Required |
+| `api_key` | `ARIZE_API_KEY` | Required |
+| `project_name` | `ARIZE_PROJECT_NAME` | `default` |
+| `project_type` | `ARIZE_PROJECT_TYPE` | `application` |
+| `endpoint` | `ARIZE_COLLECTOR_ENDPOINT` | `Endpoint.ARIZE` |
+
+`register` accepts `application`, `harness`, or `experiment` for `project_type` and sets it on the
+provider resource as `arize.project.type`. Explicit arguments take precedence over environment
+values. Empty strings are explicit values and fail validation; an unset or empty environment
+endpoint uses `Endpoint.ARIZE`. Processors with a custom `span_exporter` do not require Arize
+configuration.
 
 ## Using OTel Primitives
 
