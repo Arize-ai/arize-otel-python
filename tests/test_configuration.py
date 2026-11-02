@@ -6,7 +6,12 @@ import sys
 import pytest
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-from test_otel import _get_exporter_from_processor, _get_processors, _headers_as_dict
+from test_otel import (
+    _exporter_headers,
+    _get_exporter_from_processor,
+    _get_processors,
+    _headers_as_dict,
+)
 
 from arize.otel import otel
 from arize.otel.blob import ArizeBlobUploader
@@ -112,7 +117,7 @@ def test_configuration_rotates_after_import(
         instance = _construct(entry_point, **kwargs)
         try:
             exporter = _exporter(instance)
-            headers = _headers_as_dict(exporter._headers)
+            headers = _headers_as_dict(_exporter_headers(exporter))
             assert headers["authorization"] == "synthetic-" + suffix
             expected_space = (
                 "config-space"
@@ -152,7 +157,7 @@ def test_explicit_configuration_overrides_environment(entry_point, configured_en
     try:
         exporter = _exporter(instance)
         assert (
-            _headers_as_dict(exporter._headers)["authorization"]
+            _headers_as_dict(_exporter_headers(exporter))["authorization"]
             == "synthetic-explicit-key"
         )
         assert "explicit.example" in exporter._endpoint
@@ -222,7 +227,7 @@ def test_routing_keeps_configuration_when_processor_creation_is_delayed(
         monkeypatch.setenv("ARIZE_COLLECTOR_ENDPOINT", "https://rotated.example/v1")
         exporter = _exporter(provider)
         assert (
-            _headers_as_dict(exporter._headers)["authorization"]
+            _headers_as_dict(_exporter_headers(exporter))["authorization"]
             == "synthetic-config-key"
         )
         assert "collector.example" in exporter._endpoint

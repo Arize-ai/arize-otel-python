@@ -399,7 +399,15 @@ class TracerProvider(_TracerProvider):
                         processor_name = span_processor.__class__.__name__
                         endpoint = exporter._endpoint
                         transport = _exporter_transport(exporter)
-                        headers = _printable_headers(exporter._headers)
+                        # Handle both old and new attribute locations for OpenTelemetry compatibility
+                        # opentelemetry-exporter-otlp-proto-http 1.45.0+ moved headers from
+                        # exporter._headers to exporter._client._headers on the HTTP exporter
+                        exporter_headers = getattr(
+                            exporter, "_headers", None
+                        ) or getattr(
+                            getattr(exporter, "_client", None), "_headers", None
+                        )
+                        headers = _printable_headers(exporter_headers or {})
                 else:
                     processor_name = "Multiple Span Processors"
                     endpoint = "Multiple Span Exporters"
