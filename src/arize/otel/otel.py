@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from enum import Enum
 from functools import cached_property
 from importlib.metadata import entry_points
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import typing
 from urllib.parse import urlparse
 
@@ -889,7 +889,7 @@ class HTTPSpanExporter(_HTTPSpanExporter):
         super().__init__(*bound_args.args, **bound_args.kwargs)
 
     @cached_property
-    def headers(self) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
+    def headers(self) -> Any:
         return _exporter_headers(self)
 
 
@@ -968,13 +968,11 @@ class GRPCSpanExporter(_GRPCSpanExporter):
         super().__init__(*bound_args.args, **bound_args.kwargs)
 
     @cached_property
-    def headers(self) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
+    def headers(self) -> Any:
         return _exporter_headers(self)
 
 
-def _exporter_headers(
-    exporter: SpanExporter,
-) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
+def _exporter_headers(exporter: SpanExporter) -> Any:
     # OTel HTTP 1.45.0+ stores headers on the client instead of the exporter.
     for obj in (exporter, getattr(exporter, "_client", None)):
         if headers := getattr(obj, "_headers", None):
@@ -992,7 +990,7 @@ def _exporter_transport(exporter: SpanExporter) -> str:
 
 
 def _printable_headers(
-    headers: Union[Dict[str, str], Sequence[Tuple[str, str]]],
+    headers: Union[List[Tuple[str, str]], Dict[str, str]],
 ) -> Dict[str, str]:
     if isinstance(headers, dict):
         return {key: "****" for key, _ in headers.items()}

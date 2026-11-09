@@ -6,11 +6,7 @@ import sys
 import pytest
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter
-from test_otel import (
-    _get_exporter_from_processor,
-    _get_processors,
-    _headers_as_dict,
-)
+from test_otel import _get_exporter_from_processor, _get_processors, _headers_as_dict
 
 from arize.otel import otel
 from arize.otel.blob import ArizeBlobUploader
