@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 from unittest.mock import Mock, patch
 
@@ -21,6 +22,7 @@ from arize.otel.otel import (
     SimpleSpanProcessor,
     Transport,
     _auto_instrument_installed_openinference_libraries,
+    _exporter_headers,
     register,
 )
 from arize.otel.version import __version__
@@ -247,7 +249,7 @@ def test_register_preserves_arize_headers_with_custom_span_processors() -> None:
     exporter = _get_exporter_from_processor(processors[-1])
     assert exporter is not None
 
-    headers = _headers_as_dict(exporter._headers)
+    headers = _headers_as_dict(exporter.headers)
     assert headers["x-custom"] == "custom-value"
     assert headers["authorization"] == "test-api-key"
     assert headers["arize-space-id"] == "test-space"
@@ -262,7 +264,7 @@ def _assert_sdk_metadata_headers(headers: Dict[str, str]) -> None:
 
 def test_grpc_exporter_includes_sdk_metadata_headers() -> None:
     exporter = GRPCSpanExporter(space_id="test-space", api_key="test-api-key")
-    headers = _headers_as_dict(exporter._headers)
+    headers = _headers_as_dict(exporter.headers)
     _assert_sdk_metadata_headers(headers)
     # SDK metadata is emitted with package identity for the exporter itself.
     assert headers["sdk-package-name"] == "arize-otel"
@@ -274,7 +276,7 @@ def test_http_exporter_includes_sdk_metadata_headers() -> None:
         api_key="test-api-key",
         endpoint="https://otlp.arize.com/v1",
     )
-    headers = _headers_as_dict(exporter._headers)
+    headers = _headers_as_dict(exporter.headers)
     _assert_sdk_metadata_headers(headers)
     assert headers["sdk-package-name"] == "arize-otel"
 
@@ -295,12 +297,47 @@ def test_sdk_metadata_headers_coexist_with_custom_and_auth_headers() -> None:
     exporter = _get_exporter_from_processor(processors[-1])
     assert exporter is not None
 
-    headers = _headers_as_dict(exporter._headers)
+    headers = _headers_as_dict(exporter.headers)
     # Auth, custom, and SDK metadata headers all survive the merge.
     assert headers["authorization"] == "test-api-key"
     assert headers["arize-space-id"] == "test-space"
     assert headers["x-custom"] == "custom-value"
     _assert_sdk_metadata_headers(headers)
+
+
+@pytest.mark.parametrize(
+    "exporter,expected",
+    [
+        (SimpleNamespace(_headers={"x-test": "legacy"}), {"x-test": "legacy"}),
+        (
+            SimpleNamespace(_client=SimpleNamespace(_headers={"x-test": "client"})),
+            {"x-test": "client"},
+        ),
+        (SimpleNamespace(), {}),
+    ],
+)
+def test_exporter_headers(exporter: Any, expected: Any) -> None:
+    assert _exporter_headers(exporter) == expected
+
+
+def test_register_http_transport_does_not_raise() -> None:
+    # Regression test for https://github.com/Arize-ai/arize-otel-python/issues/30
+    # register(transport=Transport.HTTP) used to crash inside
+    # TracerProvider._tracing_details() because opentelemetry-exporter-otlp-proto-http
+    # 1.45.0+ moved the HTTP exporter's headers from `exporter._headers` to
+    # `exporter._client._headers`.
+    tracer_provider = _register_test_tracer_provider(transport=Transport.HTTP)
+
+    processors = _get_processors(tracer_provider)
+    exporter = _get_exporter_from_processor(processors[-1])
+    assert exporter is not None
+
+    # _tracing_details() is what crashed; call it directly too, since
+    # register() only calls it as a side effect.
+    details = tracer_provider._tracing_details()
+    headers = _headers_as_dict(exporter.headers)
+    assert headers["authorization"] == "test-api-key"
+    assert "Transport Headers" in details
 
 
 def test_user_supplied_sdk_metadata_header_overrides_default() -> None:
@@ -311,7 +348,7 @@ def test_user_supplied_sdk_metadata_header_overrides_default() -> None:
         api_key="test-api-key",
         headers={"sdk-package-name": "custom-sdk"},
     )
-    headers = _headers_as_dict(exporter._headers)
+    headers = _headers_as_dict(exporter.headers)
     assert headers["sdk-package-name"] == "custom-sdk"
     # Non-overridden metadata keys still fall back to the built-in defaults.
     assert headers["sdk-language"] == SDK_LANGUAGE
