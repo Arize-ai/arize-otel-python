@@ -5,6 +5,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from enum import Enum
+from functools import cached_property
 from importlib.metadata import entry_points
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import typing
@@ -399,15 +400,10 @@ class TracerProvider(_TracerProvider):
                         processor_name = span_processor.__class__.__name__
                         endpoint = exporter._endpoint
                         transport = _exporter_transport(exporter)
-                        # Handle both old and new attribute locations for OpenTelemetry compatibility
-                        # opentelemetry-exporter-otlp-proto-http 1.45.0+ moved headers from
-                        # exporter._headers to exporter._client._headers on the HTTP exporter
-                        exporter_headers = getattr(
-                            exporter, "_headers", None
-                        ) or getattr(
-                            getattr(exporter, "_client", None), "_headers", None
-                        )
-                        headers = _printable_headers(exporter_headers or {})
+                        exporter_headers = getattr(exporter, "headers", None)
+                        if exporter_headers is None:
+                            exporter_headers = _exporter_headers(exporter)
+                        headers = _printable_headers(exporter_headers)
                 else:
                     processor_name = "Multiple Span Processors"
                     endpoint = "Multiple Span Exporters"
@@ -895,6 +891,10 @@ class HTTPSpanExporter(_HTTPSpanExporter):
             bound_args.arguments["endpoint"] = endpoint
         super().__init__(*bound_args.args, **bound_args.kwargs)
 
+    @cached_property
+    def headers(self) -> Any:
+        return _exporter_headers(self)
+
 
 class GRPCSpanExporter(_GRPCSpanExporter):
     """
@@ -969,6 +969,18 @@ class GRPCSpanExporter(_GRPCSpanExporter):
         if bound_args.arguments.get("endpoint") is None:
             bound_args.arguments["endpoint"] = endpoint
         super().__init__(*bound_args.args, **bound_args.kwargs)
+
+    @cached_property
+    def headers(self) -> Any:
+        return _exporter_headers(self)
+
+
+def _exporter_headers(exporter: SpanExporter) -> Any:
+    # OTel HTTP 1.45.0+ stores headers on the client instead of the exporter.
+    for obj in (exporter, getattr(exporter, "_client", None)):
+        if headers := getattr(obj, "_headers", None):
+            return headers
+    return {}
 
 
 def _exporter_transport(exporter: SpanExporter) -> str:

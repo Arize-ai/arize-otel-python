@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 from unittest.mock import Mock, patch
 
@@ -19,8 +20,12 @@ from arize.otel.otel import (
     GRPCSpanExporter,
     HTTPSpanExporter,
     SimpleSpanProcessor,
+    TracerProvider,
     Transport,
+    _GRPCSpanExporter,
+    _HTTPSpanExporter,
     _auto_instrument_installed_openinference_libraries,
+    _exporter_headers,
     register,
 )
 from arize.otel.version import __version__
@@ -88,14 +93,6 @@ def _headers_as_dict(headers: Any) -> Dict[str, str]:
     if isinstance(headers, dict):
         return {key.lower(): value for key, value in headers.items()}
     return {key.lower(): value for key, value in headers}
-
-
-def _exporter_headers(exporter: Any) -> Any:
-    # opentelemetry-exporter-otlp-proto-http 1.45.0+ moved headers from
-    # exporter._headers to exporter._client._headers on the HTTP exporter.
-    return getattr(exporter, "_headers", None) or getattr(
-        getattr(exporter, "_client", None), "_headers", None
-    )
 
 
 def _register_test_tracer_provider(**kwargs: Any) -> Any:
@@ -255,7 +252,7 @@ def test_register_preserves_arize_headers_with_custom_span_processors() -> None:
     exporter = _get_exporter_from_processor(processors[-1])
     assert exporter is not None
 
-    headers = _headers_as_dict(_exporter_headers(exporter))
+    headers = _headers_as_dict(exporter.headers)
     assert headers["x-custom"] == "custom-value"
     assert headers["authorization"] == "test-api-key"
     assert headers["arize-space-id"] == "test-space"
@@ -270,7 +267,7 @@ def _assert_sdk_metadata_headers(headers: Dict[str, str]) -> None:
 
 def test_grpc_exporter_includes_sdk_metadata_headers() -> None:
     exporter = GRPCSpanExporter(space_id="test-space", api_key="test-api-key")
-    headers = _headers_as_dict(_exporter_headers(exporter))
+    headers = _headers_as_dict(exporter.headers)
     _assert_sdk_metadata_headers(headers)
     # SDK metadata is emitted with package identity for the exporter itself.
     assert headers["sdk-package-name"] == "arize-otel"
@@ -282,7 +279,7 @@ def test_http_exporter_includes_sdk_metadata_headers() -> None:
         api_key="test-api-key",
         endpoint="https://otlp.arize.com/v1",
     )
-    headers = _headers_as_dict(_exporter_headers(exporter))
+    headers = _headers_as_dict(exporter.headers)
     _assert_sdk_metadata_headers(headers)
     assert headers["sdk-package-name"] == "arize-otel"
 
@@ -303,7 +300,7 @@ def test_sdk_metadata_headers_coexist_with_custom_and_auth_headers() -> None:
     exporter = _get_exporter_from_processor(processors[-1])
     assert exporter is not None
 
-    headers = _headers_as_dict(_exporter_headers(exporter))
+    headers = _headers_as_dict(exporter.headers)
     # Auth, custom, and SDK metadata headers all survive the merge.
     assert headers["authorization"] == "test-api-key"
     assert headers["arize-space-id"] == "test-space"
@@ -311,24 +308,95 @@ def test_sdk_metadata_headers_coexist_with_custom_and_auth_headers() -> None:
     _assert_sdk_metadata_headers(headers)
 
 
-def test_register_http_transport_does_not_raise() -> None:
-    # Regression test for https://github.com/Arize-ai/arize-otel-python/issues/30
-    # register(transport=Transport.HTTP) used to crash inside
-    # TracerProvider._tracing_details() because opentelemetry-exporter-otlp-proto-http
-    # 1.45.0+ moved the HTTP exporter's headers from `exporter._headers` to
-    # `exporter._client._headers`.
-    tracer_provider = _register_test_tracer_provider(transport=Transport.HTTP)
+@pytest.mark.parametrize(
+    "exporter,expected",
+    [
+        (SimpleNamespace(_headers={"x-test": "legacy"}), {"x-test": "legacy"}),
+        (SimpleNamespace(_headers=(("x-test", "grpc"),)), (("x-test", "grpc"),)),
+        (
+            SimpleNamespace(_client=SimpleNamespace(_headers={"x-test": "client"})),
+            {"x-test": "client"},
+        ),
+        (
+            SimpleNamespace(
+                _headers={"x-test": "legacy"},
+                _client=SimpleNamespace(_headers={"x-test": "client"}),
+            ),
+            {"x-test": "legacy"},
+        ),
+        (
+            SimpleNamespace(
+                _headers={},
+                _client=SimpleNamespace(_headers={"x-test": "client"}),
+            ),
+            {"x-test": "client"},
+        ),
+        (SimpleNamespace(), {}),
+        (SimpleNamespace(_client=SimpleNamespace()), {}),
+        (SimpleNamespace(_headers=None, _client=None), {}),
+    ],
+)
+def test_exporter_headers(exporter: Any, expected: Any) -> None:
+    assert _exporter_headers(exporter) == expected
 
-    processors = _get_processors(tracer_provider)
-    exporter = _get_exporter_from_processor(processors[-1])
-    assert exporter is not None
 
-    # _tracing_details() is what crashed; call it directly too, since
-    # register() only calls it as a side effect.
-    details = tracer_provider._tracing_details()
-    headers = _headers_as_dict(_exporter_headers(exporter))
-    assert headers["authorization"] == "test-api-key"
-    assert "Transport Headers" in details
+@pytest.mark.parametrize("exporter_class", [HTTPSpanExporter, GRPCSpanExporter])
+def test_exporter_headers_are_cached(exporter_class: Any) -> None:
+    exporter = exporter_class(space_id="test-space", api_key="test-api-key")
+    try:
+        with patch("arize.otel.otel._exporter_headers", wraps=_exporter_headers) as find:
+            headers = exporter.headers
+            assert exporter.headers is headers
+            find.assert_called_once_with(exporter)
+        assert _headers_as_dict(headers)["authorization"] == "test-api-key"
+    finally:
+        exporter.shutdown()
+
+
+@pytest.mark.parametrize("transport", [Transport.HTTP, Transport.GRPC])
+@pytest.mark.parametrize("batch", [False, True])
+@pytest.mark.parametrize("verbose", [False, True])
+def test_register_transport_headers(
+    transport: Transport, batch: bool, verbose: bool
+) -> None:
+    tracer_provider = _register_test_tracer_provider(
+        transport=transport,
+        batch=batch,
+        verbose=verbose,
+        headers={"x-custom": "custom-secret"},
+    )
+    try:
+        processors = _get_processors(tracer_provider)
+        exporter = _get_exporter_from_processor(processors[-1])
+        assert exporter is not None
+
+        details = tracer_provider._tracing_details()
+        headers = _headers_as_dict(exporter.headers)
+        assert headers["authorization"] == "test-api-key"
+        assert headers["x-custom"] == "custom-secret"
+        assert "'authorization': '****'" in details
+        assert "'x-custom': '****'" in details
+        assert "test-api-key" not in details
+        assert "custom-secret" not in details
+    finally:
+        tracer_provider.shutdown()
+
+
+@pytest.mark.parametrize("exporter_class", [_HTTPSpanExporter, _GRPCSpanExporter])
+def test_tracing_details_with_upstream_exporter(exporter_class: Any) -> None:
+    tracer_provider = TracerProvider(
+        space_id="test-space", api_key="test-api-key", verbose=False
+    )
+    exporter = exporter_class(
+        endpoint="http://localhost:4318", headers={"authorization": "custom-secret"}
+    )
+    tracer_provider.add_span_processor(SimpleSpanProcessor(span_exporter=exporter))
+    try:
+        details = tracer_provider._tracing_details()
+        assert "'authorization': '****'" in details
+        assert "custom-secret" not in details
+    finally:
+        tracer_provider.shutdown()
 
 
 def test_user_supplied_sdk_metadata_header_overrides_default() -> None:
@@ -339,7 +407,7 @@ def test_user_supplied_sdk_metadata_header_overrides_default() -> None:
         api_key="test-api-key",
         headers={"sdk-package-name": "custom-sdk"},
     )
-    headers = _headers_as_dict(_exporter_headers(exporter))
+    headers = _headers_as_dict(exporter.headers)
     assert headers["sdk-package-name"] == "custom-sdk"
     # Non-overridden metadata keys still fall back to the built-in defaults.
     assert headers["sdk-language"] == SDK_LANGUAGE
