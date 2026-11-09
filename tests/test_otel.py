@@ -383,13 +383,18 @@ def test_register_transport_headers(
 
 
 @pytest.mark.parametrize("exporter_class", [_HTTPSpanExporter, _GRPCSpanExporter])
-def test_tracing_details_with_upstream_exporter(exporter_class: Any) -> None:
+@pytest.mark.parametrize("has_unrelated_headers", [False, True])
+def test_tracing_details_with_upstream_exporter(
+    exporter_class: Any, has_unrelated_headers: bool
+) -> None:
     tracer_provider = TracerProvider(
         space_id="test-space", api_key="test-api-key", verbose=False
     )
     exporter = exporter_class(
         endpoint="http://localhost:4318", headers={"authorization": "custom-secret"}
     )
+    if has_unrelated_headers:
+        exporter.headers = object()
     tracer_provider.add_span_processor(SimpleSpanProcessor(span_exporter=exporter))
     try:
         details = tracer_provider._tracing_details()

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from enum import Enum
 from functools import cached_property
 from importlib.metadata import entry_points
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type, Union
 import typing
 from urllib.parse import urlparse
 
@@ -400,10 +400,7 @@ class TracerProvider(_TracerProvider):
                         processor_name = span_processor.__class__.__name__
                         endpoint = exporter._endpoint
                         transport = _exporter_transport(exporter)
-                        exporter_headers = getattr(exporter, "headers", None)
-                        if exporter_headers is None:
-                            exporter_headers = _exporter_headers(exporter)
-                        headers = _printable_headers(exporter_headers)
+                        headers = _printable_headers(_exporter_headers(exporter))
                 else:
                     processor_name = "Multiple Span Processors"
                     endpoint = "Multiple Span Exporters"
@@ -892,7 +889,7 @@ class HTTPSpanExporter(_HTTPSpanExporter):
         super().__init__(*bound_args.args, **bound_args.kwargs)
 
     @cached_property
-    def headers(self) -> Any:
+    def headers(self) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
         return _exporter_headers(self)
 
 
@@ -971,11 +968,13 @@ class GRPCSpanExporter(_GRPCSpanExporter):
         super().__init__(*bound_args.args, **bound_args.kwargs)
 
     @cached_property
-    def headers(self) -> Any:
+    def headers(self) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
         return _exporter_headers(self)
 
 
-def _exporter_headers(exporter: SpanExporter) -> Any:
+def _exporter_headers(
+    exporter: SpanExporter,
+) -> Union[Dict[str, str], Sequence[Tuple[str, str]]]:
     # OTel HTTP 1.45.0+ stores headers on the client instead of the exporter.
     for obj in (exporter, getattr(exporter, "_client", None)):
         if headers := getattr(obj, "_headers", None):
@@ -993,7 +992,7 @@ def _exporter_transport(exporter: SpanExporter) -> str:
 
 
 def _printable_headers(
-    headers: Union[List[Tuple[str, str]], Dict[str, str]],
+    headers: Union[Dict[str, str], Sequence[Tuple[str, str]]],
 ) -> Dict[str, str]:
     if isinstance(headers, dict):
         return {key: "****" for key, _ in headers.items()}
